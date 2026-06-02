@@ -1,11 +1,12 @@
 import Header from "./Component/header";
-
-function App(){
+import Footer from "./Component/Footer";
+function App() {
   return (
     <>
-    <Header/>
+      <Header />
+      <Footer />
     </>
-  )
+  );
 }
 
 export default App;
