@@ -16,7 +16,7 @@ function App() {
         <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-3xl p-8 md:p-12 text-white shadow-sm mb-8">
           <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-3">Welcome to Merkato Store</h1>
           <p className="text-orange-100 text-sm md:text-base max-w-md font-medium leading-relaxed">
-            The easiest way to discover local hot deals with quick guest checkout capabilities.
+            The easiest way to discover hot deals with quick guest checkout capabilities.
           </p>
         </div>
 
