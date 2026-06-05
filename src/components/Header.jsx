@@ -1,61 +1,66 @@
-import React from 'react';
-import { FiShoppingCart, FiSearch } from 'react-icons/fi';
+import { Link, useLocation } from "react-router-dom";
+import { FiShoppingCart } from "react-icons/fi";
+import { useCart } from "../context/CartContext";
 
-const Header = ({ selectedCategory, setSelectedCategory }) => {
-  //  defined categories matching 
-  const categories = ["Electronics", "Fashion", "Home & Living", "Groceries", "Beauty"];
+export default function Header() {
+  const { cart } = useCart();
+  const location = useLocation(); 
+  const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+
+  const linkStyle = (path) =>
+    `text-sm font-semibold transition-colors duration-200 ${
+      location.pathname === path
+        ? "text-orange-500 border-b-2 border-orange-500 pb-1"
+        : "text-gray-600 hover:text-orange-500"
+    }`;
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      {/* Main Navbar Containment */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        
-        {/* Brand Logo */}
-        <a href="/" className="text-2xl font-black tracking-tight text-orange-600 flex-shrink-0">
-          MERKATO<span className="text-gray-900 font-medium text-lg ml-1">STORE</span>
-        </a>
+    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100 backdrop-blur-md bg-white/95">
+      <div className="container mx-auto px-4 py-4 flex justify-between items-center max-w-6xl">
+        {/* Brand Logo with Two-Tone Colors */}
+        <Link
+          to="/"
+          className="text-2xl font-black tracking-tight flex items-center"
+        >
+          <span className="text-gray-900">Merkato</span>
+          <span className="text-orange-500 ml-1">Store</span>
+        </Link>
 
-        {/* Unified Search and Category Options Block */}
-        <div className="flex-1 max-w-xl mx-4 hidden md:flex items-center gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-l-full text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-              <FiSearch size={18} />
-            </div>
-          </div>
+        {/*   Navigation Center Menu */}
+        <nav className="hidden md:flex items-center gap-8">
+          <Link to="/" className={linkStyle("/")}>
+            Home
+          </Link>
+          <Link to="/products" className={linkStyle("/products")}>
+            Products
+          </Link>
+          <Link to="/services" className={linkStyle("/services")}>
+            Services
+          </Link>
+          <Link to="/about" className={linkStyle("/about")}>
+            About
+          </Link>
+          <Link to="/contact" className={linkStyle("/contact")}>
+            Contact
+          </Link>
+        </nav>
 
-          {/* Integrated Category Select Option Dropdown */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-gray-100 border-t border-b border-r border-gray-300 text-gray-700 text-sm rounded-r-full font-semibold px-4 py-2 outline-none cursor-pointer hover:bg-gray-200 transition-all h-[38px]"
+        {/* Cart Badge */}
+        <div className="flex items-center gap-4">
+          <Link
+            to="/cart"
+            className="relative p-2.5 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center justify-center group"
+            aria-label="View Shopping Cart"
           >
-            <option value="All">All Categories</option>
-            {categories.map((cat, index) => (
-              <option key={index} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+            <FiShoppingCart className="text-xl text-gray-700 group-hover:text-orange-500 transition-colors" />
+            {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center shadow-xs animate-pulse">
+                {totalItems}
+              </span>
+            )}
+          </Link>
         </div>
-
-        {/* Cart Icon Notification Action Trigger Container */}
-        <div className="flex items-center gap-4 text-gray-600">
-          <button className="p-2 hover:text-orange-600 relative transition-colors" aria-label="Cart">
-            <FiShoppingCart size={22} />
-            <span className="absolute top-1 right-1 bg-orange-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold">
-              0
-            </span>
-          </button>
-        </div>
-
       </div>
     </header>
   );
-};
-
-export default Header;
+}
