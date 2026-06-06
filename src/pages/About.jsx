@@ -13,7 +13,7 @@ export default function About() {
         to="/products"
         className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg shadow transition-all"
       >
-        Move to Products
+       Go to Products
       </Link>
     </div>
   );
