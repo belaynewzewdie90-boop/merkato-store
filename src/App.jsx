@@ -10,7 +10,7 @@ import Checkout from "./pages/Checkout";
 import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import Blog from "./pages/Blog";
-
+import Address from "./pages/Address";
 function App() {
   return (
     <div className="min-h-screen flex flex-col bg-white w-full">
@@ -28,6 +28,7 @@ function App() {
           <Route path="/services" element={<Services />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/address" element={<Address />} />
         </Routes>
       </div>
 
