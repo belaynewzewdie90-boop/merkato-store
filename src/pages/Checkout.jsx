@@ -1,94 +1,109 @@
-import { useState } from "react";
+import React from "react";
+// 1. Import useNavigate to allow redirecting after submission
 import { useNavigate } from "react-router-dom";
 
-export default function Checkout({ cart, clearCart }) {
+export default function Checkout() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    fullName: "",
-    phone: "",
-    location: "",
-  });
-  const [loading, setLoading] = useState(false);
 
-  const totalCost =
-    cart.reduce((sum, item) => sum + item.price * item.quantity, 0) + 150;
+  // 2. Function to generate a random alphanumeric tracking ID when ordering
+  const generateOrderId = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < 5; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `MS-${result}`;
+  };
 
-  const handleOrderSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
 
-    // Simulate order submission timeline
-    setTimeout(() => {
-      clearCart();
-      alert(
-        `Thank you, ${formData.fullName}! Your Cash-on-Delivery order has been placed.`,
-      );
-      setLoading(false);
-      navigate("/"); // Automatically redirects users back home
-    }, 2000);
+    // Generate the unique ID for this specific order
+    const newOrderId = generateOrderId();
+
+    alert(`Order Placed Successfully! Your Order ID is: #${newOrderId}`);
+
+    // 3. Send the user to the tracking page with their brand new ID
+    navigate(`/tracking/${newOrderId}`);
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Delivery Checkout
+    <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg my-10">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
+        Checkout Details
       </h2>
-      <form onSubmit={handleOrderSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Full Name
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.fullName}
-            onChange={(e) =>
-              setFormData({ ...formData, fullName: e.target.value })
-            }
-            className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Phone Number
-          </label>
-          <input
-            type="tel"
-            required
-            value={formData.phone}
-            onChange={(e) =>
-              setFormData({ ...formData, phone: e.target.value })
-            }
-            className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
-            Delivery Drop-off Location
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.location}
-            onChange={(e) =>
-              setFormData({ ...formData, location: e.target.value })
-            }
-            className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-          />
+
+      {/* 4. Attach the handleSubmit handler to the form */}
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 md:grid-cols-2 gap-8"
+      >
+        {/* Shipping Form */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-700">
+            Shipping Information
+          </h3>
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              Full Name
+            </label>
+            <input
+              type="text"
+              className="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Abebe Bikila"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              className="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="+251 9..."
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              City / Location
+            </label>
+            <input
+              type="text"
+              className="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="e.g., Addis Ababa / Bahir Dar"
+              required
+            />
+          </div>
         </div>
 
-        <div className="bg-gray-50 p-3 rounded-lg text-sm my-4 font-medium text-gray-700">
-          Total to Pay (with delivery):{" "}
-          <span className="font-bold text-gray-900">{totalCost} ETB</span>
-        </div>
+        {/* Order Summary */}
+        <div className="bg-gray-50 p-4 rounded-lg border h-fit">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">
+            Order Summary
+          </h3>
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Items Subtotal:</span>
+            <span>1,200.00 ETB</span>
+          </div>
+          <div className="flex justify-between text-sm text-gray-600 mb-4">
+            <span>Delivery Fee:</span>
+            <span>Free</span>
+          </div>
+          <div className="flex justify-between font-bold text-gray-800 border-t pt-2 text-lg">
+            <span>Total:</span>
+            <span>1,200.00 ETB</span>
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading || cart.length === 0}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-lg transition-all shadow"
-        >
-          {loading ? "Processing Order..." : "Place Cash on Delivery Order"}
-        </button>
+          {/* Form submits when this button is clicked */}
+          <button
+            type="submit"
+            className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition-colors"
+          >
+            Confirm Order
+          </button>
+        </div>
       </form>
     </div>
   );
