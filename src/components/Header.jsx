@@ -4,7 +4,7 @@ import { useCart } from "../context/CartContext";
 
 export default function Header() {
   const { cart } = useCart();
-  const location = useLocation(); 
+  const location = useLocation();
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   const linkStyle = (path) =>
@@ -39,6 +39,12 @@ export default function Header() {
           </Link>
           <Link to="/about" className={linkStyle("/about")}>
             About
+          </Link>
+          <Link
+            to="/tracking"
+            className="hover:text-orange-500 transition-colors"
+          >
+            My Orders
           </Link>
           <Link to="/contact" className={linkStyle("/contact")}>
             Contact
