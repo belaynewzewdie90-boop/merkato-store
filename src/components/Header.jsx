@@ -49,6 +49,9 @@ export default function Header() {
           <Link to="/contact" className={linkStyle("/contact")}>
             Contact
           </Link>
+          <Link to="/blog" className={linkStyle("/blog")}>
+            Blog
+          </Link>
         </nav>
 
         {/* Cart Badge */}
