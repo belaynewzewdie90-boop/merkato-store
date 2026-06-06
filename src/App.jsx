@@ -7,6 +7,7 @@ import Cart from "./pages/Cart";
 import Tracking from "./pages/Tracking";
 import Checkout from "./pages/Checkout"; // Make sure Checkout is imported if you or your team added it
 import Services from "./pages/Services";
+import Contact from "./pages/Contact";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/tracking" element={<Tracking />} />
           <Route path="/tracking/:orderId" element={<Tracking />} />
            <Route path="/services" element={<Services />} /> 
+           <Route path="/contact" element={<Contact />} /> 
         </Routes>
       </div>
       <Footer />
