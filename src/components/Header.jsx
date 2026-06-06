@@ -52,6 +52,9 @@ export default function Header() {
           <Link to="/blog" className={linkStyle("/blog")}>
             Blog
           </Link>
+          <Link to="/address" className={linkStyle("/address")}>
+            Address
+          </Link>
         </nav>
 
         {/* Cart Badge */}
