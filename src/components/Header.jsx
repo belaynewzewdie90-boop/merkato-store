@@ -43,6 +43,9 @@ export default function Header() {
           <Link to="/contact" className={linkStyle("/contact")}>
             Contact
           </Link>
+          <Link to="/admin/login" className={linkStyle("/admin/login")}>
+            Admin
+          </Link>
         </nav>
 
         {/* Cart Badge */}
