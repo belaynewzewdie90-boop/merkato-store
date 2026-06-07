@@ -1,116 +1,198 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 
 export default function Tracking() {
   const { orderId } = useParams();
+  const [orders, setOrders] = useState([]);
 
-  // 1. Use React State to handle status dynamically so it can change to cancelled
-  // 1 = Placed, 2 = Processing, 3 = Out for Delivery, 4 = Delivered, 0 = Cancelled
-  const [orderStatus, setOrderStatus] = useState(2);
+  useEffect(() => {
+    const savedOrders =
+      JSON.parse(localStorage.getItem("merkato_orders")) || [];
+    setOrders(savedOrders);
+  }, [orderId]);
 
-  const steps = [
-    { id: 1, name: "Order Placed", desc: "We have received your order" },
-    { id: 2, name: "Processing", desc: "Your items are being packed" },
-    { id: 3, name: "Out for Delivery", desc: "Our courier is on the way" },
-    { id: 4, name: "Delivered", desc: "Package handed over successfully" },
-  ];
+  const activeOrder = orders.find((o) => o.id === orderId);
 
-  // 2. Cancellation handler function
+  const getStatusStep = (status) => {
+    switch (status) {
+      case "Placed":
+        return 1;
+      case "Processing":
+        return 2;
+      case "Shipped":
+        return 3;
+      case "Delivered":
+        return 4;
+      case "Canceled":
+        return 0; // Distinct layout track for canceled items
+      default:
+        return 1;
+    }
+  };
+
+  // Function to let the user cancel the order locally
   const handleCancelOrder = () => {
     const confirmCancel = window.confirm(
       "Are you sure you want to cancel this order?",
     );
-    if (confirmCancel) {
-      setOrderStatus(0); // Set status to 0 representing Cancelled
-    }
+    if (!confirmCancel) return;
+
+    const updatedOrders = orders.map((order) => {
+      if (order.id === orderId) {
+        return { ...order, status: "Canceled" }; // Overwrite status matching key signature
+      }
+      return order;
+    });
+
+    setOrders(updatedOrders);
+    localStorage.setItem("merkato_orders", JSON.stringify(updatedOrders));
   };
 
-  return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-md rounded-lg my-10">
-      <div className="border-b pb-4 mb-6 flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Track Your Order</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Order ID:{" "}
-            <span className="font-mono text-orange-500">#{orderId}</span>
+  if (orderId && activeOrder) {
+    const currentStep = getStatusStep(activeOrder.status || "Placed");
+    const isCanceled = activeOrder.status === "Canceled";
+
+    return (
+      <div className="max-w-2xl mx-auto my-10 p-6 bg-white border rounded-lg shadow-sm">
+        <div className="flex justify-between items-center border-b pb-4 mb-6">
+          <div>
+            <Link
+              to="/tracking"
+              className="text-xs text-orange-500 hover:underline"
+            >
+              ← All Orders
+            </Link>
+            <h2 className="text-xl font-bold text-gray-900 mt-1">
+              Order Details ID:{" "}
+              <span className="font-mono text-orange-500">
+                #{activeOrder.id}
+              </span>
+            </h2>
+          </div>
+          <span
+            className={`text-xs font-bold px-2.5 py-1 rounded border ${isCanceled ? "bg-red-50 text-red-600 border-red-100" : "bg-gray-100 text-gray-800"}`}
+          >
+            Admin Status: {activeOrder.status || "Placed"}
+          </span>
+        </div>
+
+        {/* Horizontal Tracking Stepper Timeline */}
+        {!isCanceled ? (
+          <div className="mb-8 relative px-2">
+            <div className="flex justify-between items-center relative z-10">
+              {[
+                { num: 1, label: "Placed" },
+                { num: 2, label: "Processing" },
+                { num: 3, label: "Shipped" },
+                { num: 4, label: "Delivered" },
+              ].map((step) => (
+                <div key={step.num} className="flex flex-col items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${currentStep >= step.num ? "bg-orange-500 text-white ring-4 ring-orange-100" : "bg-gray-200 text-gray-400"}`}
+                  >
+                    {step.num}
+                  </div>
+                  <span
+                    className={`text-xs mt-1 font-medium ${currentStep >= step.num ? "text-gray-900" : "text-gray-400"}`}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="absolute top-4 left-4 right-4 h-0.5 bg-gray-100 -z-0">
+              <div
+                className="h-full bg-orange-400 transition-all duration-300"
+                style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        ) : (
+          /* Canceled Alert Banner State */
+          <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-md text-red-700 text-sm font-medium flex items-center gap-2 animate-fade-in">
+            <span>🛑</span> This order was canceled by the customer and
+            processing operations are terminated.
+          </div>
+        )}
+
+        {/* Invoice specifications summary */}
+        <div className="bg-gray-50 border p-4 rounded-md text-sm space-y-2 text-gray-700 mb-6">
+          <p>
+            <strong>Customer Name:</strong> {activeOrder.customerName}
+          </p>
+          <p>
+            <strong>Contact Phone:</strong> {activeOrder.phone}
+          </p>
+          <p>
+            <strong>Destination:</strong> {activeOrder.address}
+          </p>
+          <p>
+            <strong>Payment Account Details:</strong>{" "}
+            {activeOrder.paymentMethod} ({activeOrder.paymentDetails})
+          </p>
+          <p className="text-base text-gray-900 font-bold border-t pt-2 mt-2">
+            Product Cost Paid:{" "}
+            <span className="text-orange-500">
+              {(activeOrder.totalPaid || 0).toLocaleString()} ETB
+            </span>
           </p>
         </div>
 
-        {/* 3. Render CANCELLED tag if status is 0 */}
-        {orderStatus === 0 && (
-          <span className="bg-red-100 text-red-600 font-bold px-3 py-1 rounded-full text-sm animate-pulse">
-            Cancelled
-          </span>
+        {/* ❌ CANCEL ORDER ACTION CONTAINER BUTTON */}
+        {activeOrder.status === "Placed" && (
+          <div className="border-t pt-4 flex justify-end">
+            <button
+              onClick={handleCancelOrder}
+              className="bg-white hover:bg-red-50 text-red-600 border border-red-200 font-semibold py-2 px-4 rounded text-xs transition-colors shadow-sm"
+            >
+              Cancel This Order
+            </button>
+          </div>
         )}
       </div>
+    );
+  }
 
-      {/* Estimated Delivery Banner OR Cancelled Banner */}
-      {orderStatus === 0 ? (
-        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-8">
-          <p className="font-bold">This order has been cancelled.</p>
-          <p className="text-sm mt-1">
-            The refund processing system has been initialized if payment was
-            made online.
-          </p>
-        </div>
+  return (
+    <div className="max-w-2xl mx-auto my-10 p-6 bg-white border rounded-lg shadow-sm">
+      <h2 className="text-xl font-bold text-gray-900 mb-4">
+        My Orders Tracker Registry
+      </h2>
+      {orders.length === 0 ? (
+        <p className="text-gray-400 text-sm py-4 text-center">
+          No orders have been submitted yet.
+        </p>
       ) : (
-        <div className="bg-orange-50 border border-orange-200 text-orange-800 p-4 rounded-lg mb-8 flex justify-between items-center">
-          <div>
-            <p className="text-xs uppercase tracking-wider font-semibold">
-              Estimated Delivery
-            </p>
-            <p className="text-lg font-bold">Today by 6:00 PM</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs uppercase tracking-wider font-semibold">
-              Courier Partner
-            </p>
-            <p className="font-medium">Merkato Express</p>
-          </div>
-        </div>
-      )}
-
-      {/* Timeline Tracking Flow */}
-      {orderStatus !== 0 && (
-        <div className="relative pl-6 border-l-2 border-gray-200 ml-4 space-y-8">
-          {steps.map((step) => {
-            const isCompleted = orderStatus >= step.id;
-            return (
-              <div key={step.id} className="relative">
-                <div
-                  className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 bg-white transition-all duration-300 ${
-                    isCompleted
-                      ? "border-orange-500 bg-orange-500 shadow"
-                      : "border-gray-300"
-                  }`}
-                />
-                <div>
-                  <h3
-                    className={`font-semibold ${isCompleted ? "text-gray-900" : "text-gray-400"}`}
-                  >
-                    {step.name}
-                  </h3>
-                  <p
-                    className={`text-sm ${isCompleted ? "text-gray-600" : "text-gray-300"}`}
-                  >
-                    {step.desc}
-                  </p>
-                </div>
+        <div className="divide-y border-t mt-2">
+          {orders.map((order) => (
+            <div
+              key={order.id}
+              className="py-3 flex justify-between items-center text-sm"
+            >
+              <div>
+                <span className="font-mono font-bold text-gray-900">
+                  #{order.id}
+                </span>
+                <span
+                  className={`ml-2 text-xs font-medium px-2 py-0.5 rounded uppercase border ${order.status === "Canceled" ? "bg-red-50 text-red-600 border-red-100" : "bg-gray-100 text-gray-600"}`}
+                >
+                  {order.status || "Placed"}
+                </span>
+                <p className="text-xs text-gray-400 mt-0.5">{order.date}</p>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 4. Cancel Action Button (Only show if order is still at step 1 or 2) */}
-      {orderStatus > 0 && orderStatus <= 2 && (
-        <div className="mt-8 pt-6 border-t flex justify-end">
-          <button
-            onClick={handleCancelOrder}
-            className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-5 rounded transition-colors text-sm"
-          >
-            Cancel Order
-          </button>
+              <div className="flex items-center gap-4">
+                <span className="font-bold text-gray-900">
+                  {(order.totalPaid || 0).toLocaleString()} ETB
+                </span>
+                <Link
+                  to={`/tracking/${order.id}`}
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-1.5 px-3 rounded"
+                >
+                  Track
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

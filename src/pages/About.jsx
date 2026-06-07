@@ -7,7 +7,8 @@ export default function About() {
         About Us
       </h1>
       <p className="text-gray-600 max-w-md mb-8">
-        We are Developers from group 1 
+        Merkato Store is an innovative e-commerce platform designed to provide a seamless shopping experience for customers looking to purchase a wide range of products online. 
+        The name "Merkato" is Center of market reflecting the website's goal of creating a virtual marketplace that connects buyers with sellers.
       </p>
       <Link
         to="/products"
