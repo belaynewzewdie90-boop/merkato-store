@@ -2,7 +2,7 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-gray-200 mt-auto py-8">
+    <footer className="glass mt-auto py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Dynamic Timestamp Copyright */}
         <p className="text-sm text-gray-500 order-2 md:order-1 text-center md:text-left">

@@ -1,1 +1,59 @@
 @import "tailwindcss";
+
+@theme {
+  --animate-fluid: fluid 20s ease infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-glow: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes fluid {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 20px rgba(251, 146, 60, 0.1); }
+  100% { box-shadow: 0 0 40px rgba(251, 146, 60, 0.25); }
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+
+.fluid-bg {
+  background: linear-gradient(
+    135deg,
+    #fef3c7 0%,
+    #ffedd5 15%,
+    #fff7ed 30%,
+    #fef3c7 50%,
+    #fffbeb 65%,
+    #fef9c3 80%,
+    #fef3c7 100%
+  );
+  background-size: 300% 300%;
+  animation: fluid 20s ease infinite;
+}

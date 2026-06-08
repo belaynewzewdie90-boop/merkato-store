@@ -15,7 +15,7 @@ export default function Header() {
     }`;
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100 backdrop-blur-md bg-white/95">
+    <header className="glass sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center max-w-6xl">
         {/* Brand Logo with Two-Tone Colors */}
         <Link
@@ -40,10 +40,7 @@ export default function Header() {
           <Link to="/about" className={linkStyle("/about")}>
             About
           </Link>
-          <Link
-            to="/tracking"
-            className="hover:text-orange-500 transition-colors"
-          >
+          <Link to="/tracking" className={linkStyle("/tracking")}>
             My Orders
           </Link>
           <Link to="/contact" className={linkStyle("/contact")}>

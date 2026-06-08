@@ -21,7 +21,7 @@ function App() {
   const isLoginRoute = location.pathname === "/admin/login";
 
   return (
-    <div className="min-h-screen flex flex-col bg-white w-full">
+    <div className="min-h-screen flex flex-col fluid-bg w-full">
       {isAdminRoute && !isLoginRoute && <AdminNavbar />}
       {(!isAdminRoute) && <Header />}
       <div className="flex-1 w-full">
