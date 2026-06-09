@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 
+function normalizeOrder(o) {
+  if (o.customerName) return o;
+  return {
+    ...o,
+    customerName: o.customer?.fullName || "Unknown",
+    phone: o.customer?.phone || o.phone || "",
+    address: o.customer?.location || o.address || "",
+    totalPaid: o.totalPaid || o.total || 0,
+    paymentMethod: o.paymentMethod || "Cash on Delivery",
+    paymentDetails: o.paymentDetails || "N/A",
+    date: o.date || (o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""),
+  };
+}
+
 export default function Tracking() {
   const { orderId } = useParams();
   const [orders, setOrders] = useState([]);
@@ -8,10 +22,10 @@ export default function Tracking() {
   useEffect(() => {
     const savedOrders =
       JSON.parse(localStorage.getItem("merkato_orders")) || [];
-    setOrders(savedOrders);
+    setOrders(savedOrders.map(normalizeOrder));
   }, [orderId]);
 
-  const activeOrder = orders.find((o) => o.id === orderId);
+  const activeOrder = orders.find((o) => o.id == orderId);
 
   const getStatusStep = (status) => {
     switch (status) {
@@ -38,8 +52,8 @@ export default function Tracking() {
     if (!confirmCancel) return;
 
     const updatedOrders = orders.map((order) => {
-      if (order.id === orderId) {
-        return { ...order, status: "Canceled" }; // Overwrite status matching key signature
+      if (order.id == orderId) {
+        return { ...order, status: "Canceled" };
       }
       return order;
     });

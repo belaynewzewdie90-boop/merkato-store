@@ -38,6 +38,7 @@ export default function Admin() {
     toggleStock,
     releaseProduct,
     addOrder,
+    updateOrderStatus,
     markDelivered,
     deleteOrder,
     clearOrders,
@@ -179,40 +180,58 @@ export default function Admin() {
                   <tr key={o.id} className="border-t border-gray-100 hover:bg-gray-50/50">
                     <td className="px-4 py-3 font-bold text-gray-900">#{o.id}</td>
                     <td className="px-4 py-3">
-                      <p className="font-bold text-gray-800">{o.customer.fullName}</p>
-                      <p className="text-xs text-gray-400">{o.customer.phone}</p>
-                      <p className="text-xs text-gray-400">{o.customer.location}</p>
+                      <p className="font-bold text-gray-800">{o.customerName || "N/A"}</p>
+                      <p className="text-xs text-gray-400">{o.phone || ""}</p>
+                      <p className="text-xs text-gray-400">{o.address || ""}</p>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600">
-                      {o.items.map((i) => i.name + " x" + i.qty).join(", ")}
+                      {o.items ? o.items.map((i) => i.name + " x" + i.qty).join(", ") : "—"}
                     </td>
                     <td className="px-4 py-3 font-bold text-gray-900">
-                      {o.total.toLocaleString()} ETB
+                      {(o.totalPaid || 0).toLocaleString()} ETB
                     </td>
                     <td className="px-4 py-3">
-                      {o.status === "processing" ? (
-                        <span className="text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-100 px-2 py-1 rounded-full uppercase inline-flex items-center gap-1">
-                          <FiClock className="w-3 h-3" /> Processing
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded-full uppercase inline-flex items-center gap-1">
-                          <FiTruck className="w-3 h-3" /> Delivered
-                        </span>
-                      )}
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase inline-flex items-center gap-1 ${o.status === "Placed" ? "bg-blue-50 text-blue-700 border border-blue-100" : o.status === "Processing" ? "bg-yellow-50 text-yellow-700 border border-yellow-100" : o.status === "Shipped" ? "bg-purple-50 text-purple-700 border border-purple-100" : o.status === "Delivered" ? "bg-green-50 text-green-700 border border-green-100" : o.status === "Canceled" ? "bg-red-50 text-red-600 border border-red-100" : "bg-gray-100 text-gray-600"}`}>
+                        {o.status === "Processing" && <FiClock className="w-3 h-3" />}
+                        {o.status === "Delivered" && <FiTruck className="w-3 h-3" />}
+                        {o.status || "Placed"}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {new Date(o.createdAt).toLocaleDateString()}
+                      {o.date || ""}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <IconBtn
-                        onClick={() => {
-                          if (confirm("Delete this order?")) deleteOrder(o.id);
-                        }}
-                        color="hover:bg-red-50 text-red-500"
-                        title="Delete"
-                      >
-                        <FiTrash2 />
-                      </IconBtn>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        {o.status !== "Canceled" && o.status !== "Delivered" && (
+                          <select
+                            value=""
+                            onChange={(e) => {
+                              if (e.target.value) updateOrderStatus(o.id, e.target.value);
+                              e.target.value = "";
+                            }}
+                            className="text-[10px] border border-gray-200 rounded px-1 py-1 outline-none focus:border-orange-500 bg-white"
+                          >
+                            <option value="" disabled>Advance</option>
+                            {["Placed", "Processing", "Shipped", "Delivered"]
+                              .filter((s) => {
+                                const order = ["Placed", "Processing", "Shipped", "Delivered"];
+                                return order.indexOf(s) > order.indexOf(o.status);
+                              })
+                              .map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                          </select>
+                        )}
+                        <IconBtn
+                          onClick={() => {
+                            if (confirm("Delete this order?")) deleteOrder(o.id);
+                          }}
+                          color="hover:bg-red-50 text-red-500"
+                          title="Delete"
+                        >
+                          <FiTrash2 />
+                        </IconBtn>
+                      </div>
                     </td>
                   </tr>
                 ))}

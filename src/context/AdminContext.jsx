@@ -152,18 +152,27 @@ export function AdminProvider({ children }) {
     const newOrder = {
       ...order,
       id: Date.now(),
-      status: "processing", // processing | delivered
+      status: "Placed",
       createdAt: new Date().toISOString(),
+      date: new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
     };
     setOrders((prev) => [newOrder, ...prev]);
     return newOrder.id;
   };
 
+  const updateOrderStatus = (id, newStatus) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o)),
+    );
+  };
+
   // customer clicks "Order Arrived"
   const markDelivered = (id) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: "delivered" } : o)),
-    );
+    updateOrderStatus(id, "Delivered");
   };
 
   const deleteOrder = (id) => {
@@ -188,6 +197,7 @@ export function AdminProvider({ children }) {
         releaseProduct,
         orders,
         addOrder,
+        updateOrderStatus,
         markDelivered,
         deleteOrder,
         clearOrders,

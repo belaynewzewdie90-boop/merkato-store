@@ -24,16 +24,19 @@ export default function Cart() {
 
   const handleOrderSubmit = (e) => {
     e.preventDefault();
-    const customerInfo = { ...formData };
     const newOrder = {
+      customerName: formData.fullName,
+      phone: formData.phone,
+      address: formData.location,
       items: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.quantity, image: i.image })),
-      customer: customerInfo,
-      total: totalCost,
+      totalPaid: totalCost,
+      paymentMethod: "Cash on Delivery",
+      paymentDetails: "N/A",
     };
     const id = addOrder(newOrder);
     setOrderId(id);
     setOrdered(true);
-    setCustomer(customerInfo); // save for success screen
+    setCustomer(formData);
     clearCart();
     setFormData({ fullName: "", phone: "", location: "" });
   };

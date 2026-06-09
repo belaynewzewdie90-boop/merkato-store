@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "../context/AdminContext";
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const { addOrder } = useAdmin();
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [generatedId, setGeneratedId] = useState("");
@@ -46,24 +48,11 @@ export default function Checkout() {
 
     // Simulate Payment Processing Gateway
     setTimeout(() => {
-      // Order ID is generated right here during submission
-      const uniqueOrderID =
-        "MK-" + self.crypto.randomUUID().split("-")[0].toUpperCase();
-      setGeneratedId(uniqueOrderID);
-      setLoading(false);
-      setIsSuccess(true);
-
       const newOrder = {
-        id: uniqueOrderID,
-        date: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
         customerName: formData.fullName,
         phone: formData.phone,
         address: formData.address,
-        totalPaid: parseFloat(formData.enteredCost), // Saved from user input
+        totalPaid: parseFloat(formData.enteredCost),
         paymentMethod:
           formData.paymentMethod === "telebirr"
             ? "Telebirr Wallet"
@@ -72,15 +61,12 @@ export default function Checkout() {
           formData.paymentMethod === "telebirr"
             ? formData.walletNumber
             : formData.accountNumber,
-        status: "Placed", // This status field can be updated by an Admin Dashboard later
       };
 
-      const existingOrders =
-        JSON.parse(localStorage.getItem("merkato_orders")) || [];
-      localStorage.setItem(
-        "merkato_orders",
-        JSON.stringify([newOrder, ...existingOrders]),
-      );
+      const id = addOrder(newOrder);
+      setGeneratedId(id);
+      setLoading(false);
+      setIsSuccess(true);
       localStorage.removeItem("merkato_cart");
     }, 2000);
   };
