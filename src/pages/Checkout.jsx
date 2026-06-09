@@ -1,10 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "../context/AdminContext";
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { addOrder } = useAdmin();
+
+  useEffect(() => {
+    if (!localStorage.getItem("merkato_current_user")) {
+      navigate("/login?redirect=/checkout");
+    }
+  }, [navigate]);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [generatedId, setGeneratedId] = useState("");

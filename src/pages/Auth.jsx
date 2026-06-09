@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
   const navigate = useNavigate();
+
+  const getRedirect = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("redirect") || "/products";
+  };
   const [isLogin, setIsLogin] = useState(true); // Toggle between Sign In and Sign Up views
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,7 +45,7 @@ export default function Auth() {
     const sessionActive = localStorage.getItem("merkato_current_user");
     if (sessionActive) {
       const user = JSON.parse(sessionActive);
-      user.role === "admin" ? navigate("/admin") : navigate("/products");
+      user.role === "admin" ? navigate("/admin") : navigate(getRedirect());
     }
   }, [navigate]);
 
@@ -101,8 +106,8 @@ export default function Auth() {
 
     setTimeout(() => {
       setLoading(false);
-      navigate("/products");
-    }, 800); 
+      navigate(getRedirect());
+    }, 800);
   };
 
   // 🔑 SESSION LOGIN WORKFLOW
@@ -130,14 +135,13 @@ export default function Auth() {
 
     setTimeout(() => {
       setLoading(false);
-      // Smart Routing Engine
       if (
         foundUser.role === "admin" ||
         foundUser.email.toLowerCase() === "admin@merkato.com"
       ) {
-        navigate("/admin"); 
+        navigate("/admin");
       } else {
-        navigate("/products"); 
+        navigate(getRedirect());
       }
     }, 800);
   };

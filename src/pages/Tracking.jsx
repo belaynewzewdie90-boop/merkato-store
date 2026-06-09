@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 
 function normalizeOrder(o) {
   if (o.customerName) return o;
@@ -16,8 +16,15 @@ function normalizeOrder(o) {
 }
 
 export default function Tracking() {
+  const navigate = useNavigate();
   const { orderId } = useParams();
   const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    if (!localStorage.getItem("merkato_current_user")) {
+      navigate("/login?redirect=/tracking");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const savedOrders =

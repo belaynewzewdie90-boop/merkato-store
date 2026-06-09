@@ -10,7 +10,11 @@ export default function Header() {
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   // 👤 Read the active session from LocalStorage
-  const currentUser = JSON.parse(localStorage.getItem("merkato_current_user"));
+  let currentUser = null;
+  try {
+    const raw = localStorage.getItem("merkato_current_user");
+    if (raw) currentUser = JSON.parse(raw);
+  } catch {}; // ignore corrupt data
 
   // 🚪 Clean Logout process: Removes active session session, leaves databases alone
   const handleLogout = () => {
@@ -51,9 +55,11 @@ export default function Header() {
           <Link to="/about" className={linkStyle("/about")}>
             About
           </Link>
-          <Link to="/tracking" className={linkStyle("/tracking")}>
-            My Orders
-          </Link>
+          {currentUser && (
+            <Link to="/tracking" className={linkStyle("/tracking")}>
+              My Orders
+            </Link>
+          )}
           <Link to="/contact" className={linkStyle("/contact")}>
             Contact
           </Link>

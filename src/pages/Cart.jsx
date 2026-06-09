@@ -1,12 +1,19 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAdmin } from "../context/AdminContext";
 import { FiTrash2, FiCheckCircle, FiTruck } from "react-icons/fi";
 
 export default function Cart() {
+  const navigate = useNavigate();
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
   const { addOrder, markDelivered } = useAdmin();
+
+  useEffect(() => {
+    if (!localStorage.getItem("merkato_current_user")) {
+      navigate("/login?redirect=/cart");
+    }
+  }, [navigate]);
 
   const [formData, setFormData] = useState({
     fullName: "",
