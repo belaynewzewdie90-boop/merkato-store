@@ -1,0 +1,121 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "title": "Premium Ethiopian Leather Shoes",
+      "price": 3400,
+      "description": "100% genuine handcrafted local leather with exceptional durable sole structures.",
+      "category": {
+        "id": 1,
+        "name": "Fashion",
+        "image": "https://api.escuelajs.co/api/v1/files/fashion.jpg"
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Traditional Handcrafted Coffee Set",
+      "price": 1850,
+      "description": "Classic ceramic jebena and coordinate cups setup for genuine cultural brewing.",
+      "category": {
+        "id": 2,
+        "name": "Home & Living",
+        "image": "https://api.escuelajs.co/api/v1/files/home.jpg"
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Premium Woven Cotton Scarf (Netela)",
+      "price": 1200,
+      "description": "Elegant, lightweight pure cotton hand-woven by local masters with golden tilet boundaries.",
+      "category": {
+        "id": 3,
+        "name": "Traditional Textiles",
+        "image": "https://api.escuelajs.co/api/v1/files/textiles.jpg"
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Organic Harar Coffee Beans (1KG)",
+      "price": 950,
+      "description": "Sun-dried single-origin medium roast Arabica beans with distinctive fruity notes.",
+      "category": {
+        "id": 4,
+        "name": "Food & Beverage",
+        "image": "https://api.escuelajs.co/api/v1/files/food.jpg"
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=600&auto=format&fit=crop&q=80"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Fashion",
+      "image": "https://api.escuelajs.co/api/v1/files/fashion.jpg"
+    },
+    {
+      "id": 2,
+      "name": "Home & Living",
+      "image": "https://api.escuelajs.co/api/v1/files/home.jpg"
+    },
+    {
+      "id": 3,
+      "name": "Traditional Textiles",
+      "image": "https://api.escuelajs.co/api/v1/files/textiles.jpg"
+    },
+    {
+      "id": 4,
+      "name": "Food & Beverage",
+      "image": "https://api.escuelajs.co/api/v1/files/food.jpg"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "email": "nahsupit@gmail.com",
+      "password": "1234",
+      "name": "Nahom",
+      "avatar": "https://api.escuelajs.co/api/v1/files/avatar.jpg",
+      "role": "customer"
+    }
+  ],
+  "postProductExample": {
+    "title": "New Product Name",
+    "price": 100,
+    "description": "Product description here",
+    "categoryId": 1,
+    "images": [
+      "https://placeimg.com/640/480/any"
+    ]
+  },
+  "postCategoryExample": {
+    "name": "New Category",
+    "image": "https://placeimg.com/640/480/any"
+  },
+  "postUserExample": {
+    "email": "user@mail.com",
+    "password": "1234",
+    "name": "User Name",
+    "avatar": "https://api.escuelajs.co/api/v1/files/avatar.jpg"
+  },
+  "authExample": {
+    "login": {
+      "email": "user@mail.com",
+      "password": "1234"
+    },
+    "response": {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  }
+}
