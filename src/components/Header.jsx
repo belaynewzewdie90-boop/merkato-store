@@ -1,11 +1,34 @@
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate for logout
-import { FiShoppingCart } from "react-icons/fi";
+import { FiShoppingCart, FiSearch } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
 
 export default function Header() {
   const { cart } = useCart();
   const location = useLocation();
   const navigate = useNavigate(); // Hook to redirect users on logout
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchVal, setSearchVal] = useState("");
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchVal.trim()) {
+      navigate(`/products?q=${encodeURIComponent(searchVal.trim())}`);
+      setSearchOpen(false);
+      setSearchVal("");
+    }
+  };
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -67,6 +90,36 @@ export default function Header() {
             Admin
           </Link>
         </nav>
+
+        {/* Global Search */}
+        <div ref={searchRef} className="relative">
+          {searchOpen ? (
+            <form onSubmit={handleSearchSubmit}>
+              <input
+                type="text"
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                placeholder="Search products..."
+                autoFocus
+                className="w-40 md:w-56 border border-gray-200 rounded-xl py-2 pl-3 pr-8 text-sm outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all bg-white"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 cursor-pointer"
+              >
+                <FiSearch size={16} />
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2.5 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer"
+              aria-label="Open search"
+            >
+              <FiSearch className="text-xl text-gray-700 hover:text-orange-500 transition-colors" />
+            </button>
+          )}
+        </div>
 
         {/* Action Container: Cart & Auth Buttons */}
         <div className="flex items-center gap-6">
