@@ -16,7 +16,7 @@ import About from "./pages/About";
 import Address from "./pages/Address";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
-import Auth from "./pages/Auth"; // Your unified Login/Register page component
+import Auth from "./pages/Auth"; 
 
 function App() {
   const location = useLocation();
