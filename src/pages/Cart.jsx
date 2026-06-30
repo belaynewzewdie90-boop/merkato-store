@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAdmin } from "../context/AdminContext";
+import { createOrder } from "../api/api";
 import { FiTrash2, FiCheckCircle, FiTruck } from "react-icons/fi";
 
 export default function Cart() {
@@ -29,7 +30,7 @@ export default function Cart() {
   );
   const totalCost = subtotal + 150;
 
-  const handleOrderSubmit = (e) => {
+  const handleOrderSubmit = async (e) => {
     e.preventDefault();
     const newOrder = {
       customerName: formData.fullName,
@@ -40,7 +41,11 @@ export default function Cart() {
       paymentMethod: "Cash on Delivery",
       paymentDetails: "N/A",
     };
-    const id = addOrder(newOrder);
+    let id = addOrder(newOrder);
+    try {
+      const backendOrder = await createOrder(newOrder);
+      id = backendOrder._id || id;
+    } catch {}
     setOrderId(id);
     setOrdered(true);
     setCustomer(formData);

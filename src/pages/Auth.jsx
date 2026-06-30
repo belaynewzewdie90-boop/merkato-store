@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginUser, registerUser, setToken } from "../api/api";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ export default function Auth() {
     const params = new URLSearchParams(window.location.search);
     return params.get("redirect") || "/products";
   };
-  const [isLogin, setIsLogin] = useState(true); // Toggle between Sign In and Sign Up views
+  const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +20,6 @@ export default function Auth() {
     confirmPassword: "",
   });
 
-  // 🔐 BACKUP SEEDER: Double check that the admin exists whenever this page mounts
   useEffect(() => {
     const existingUsers =
       JSON.parse(localStorage.getItem("merkato_users_db")) || [];
@@ -41,7 +41,6 @@ export default function Auth() {
       );
     }
 
-    // If a user is already logged in, redirect them out automatically
     const sessionActive = localStorage.getItem("merkato_current_user");
     if (sessionActive) {
       const user = JSON.parse(sessionActive);
@@ -51,99 +50,116 @@ export default function Auth() {
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError(""); // Instantly remove warnings while typing
+    if (error) setError("");
   };
 
-  // 📝 NEW USER REGISTRATION WORKFLOW
-  const handleRegisterSubmit = (e) => {
+  const saveLocalUser = (user) => {
+    localStorage.setItem("merkato_current_user", JSON.stringify(user));
+  };
+
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const existingUsers =
-      JSON.parse(localStorage.getItem("merkato_users_db")) || [];
-
-    // Security Rule 1: Block general signups using the master admin address
     if (formData.email.toLowerCase() === "admin@merkato.com") {
-      setError(
-        "This specific email address is strictly reserved for store systems.",
-      );
+      setError("This specific email address is strictly reserved for store systems.");
       setLoading(false);
       return;
     }
 
-    // Security Rule 2: Password Check
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match. Please verify your typing.");
       setLoading(false);
       return;
     }
 
-    // Security Rule 3: Account Duplication Check
-    const emailExists = existingUsers.some(
-      (u) => u.email.toLowerCase() === formData.email.toLowerCase(),
-    );
-    if (emailExists) {
-      setError("An account with this email address is already registered.");
-      setLoading(false);
-      return;
-    }
+    try {
+      await registerUser({
+        firstName: formData.name.split(" ")[0] || formData.name,
+        lastName: formData.name.split(" ")[1] || "User",
+        email: formData.email,
+        password: formData.password,
+        acceptTerms: true,
+      });
 
-    // Create unique client profile object
-    const newCustomer = {
-      id: `USR-${Date.now()}`,
-      name: formData.name,
-      email: formData.email.toLowerCase(),
-      password: formData.password,
-      role: "customer",
-    };
+      const loginRes = await loginUser(formData.email, formData.password);
+      const user = {
+        id: loginRes.user?.id || `USR-${Date.now()}`,
+        name: formData.name,
+        email: formData.email.toLowerCase(),
+        role: loginRes.user?.role || "customer",
+      };
+      saveLocalUser(user);
 
-    // Commit safely to database alongside the admin
-    localStorage.setItem(
-      "merkato_users_db",
-      JSON.stringify([...existingUsers, newCustomer]),
-    );
-    localStorage.setItem("merkato_current_user", JSON.stringify(newCustomer));
-
-    setTimeout(() => {
       setLoading(false);
       navigate(getRedirect());
-    }, 800);
+    } catch (err) {
+      const existingUsers = JSON.parse(localStorage.getItem("merkato_users_db")) || [];
+      const emailExists = existingUsers.some(
+        (u) => u.email.toLowerCase() === formData.email.toLowerCase(),
+      );
+      if (emailExists) {
+        setError("An account with this email address is already registered.");
+        setLoading(false);
+        return;
+      }
+
+      const newCustomer = {
+        id: `USR-${Date.now()}`,
+        name: formData.name,
+        email: formData.email.toLowerCase(),
+        password: formData.password,
+        role: "customer",
+      };
+      localStorage.setItem("merkato_users_db", JSON.stringify([...existingUsers, newCustomer]));
+      saveLocalUser(newCustomer);
+      setLoading(false);
+      navigate(getRedirect());
+    }
   };
 
-  // 🔑 SESSION LOGIN WORKFLOW
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const existingUsers =
-      JSON.parse(localStorage.getItem("merkato_users_db")) || [];
+    try {
+      const res = await loginUser(formData.email, formData.password);
+      const user = {
+        id: res.user?.id || `USR-${Date.now()}`,
+        name: `${res.user?.firstName || ""} ${res.user?.lastName || ""}`.trim() || formData.email,
+        email: formData.email.toLowerCase(),
+        role: res.user?.role || "customer",
+      };
+      saveLocalUser(user);
 
-    const foundUser = existingUsers.find(
-      (u) =>
-        u.email.toLowerCase() === formData.email.toLowerCase() &&
-        u.password === formData.password,
-    );
-
-    if (!foundUser) {
-      setError("Invalid credential combination. Check email or password.");
       setLoading(false);
-      return;
-    }
-
-    // Save current active user token mapping
-    localStorage.setItem("merkato_current_user", JSON.stringify(foundUser));
-
-    setTimeout(() => {
-      setLoading(false);
-      if (
-        foundUser.role === "admin" ||
-        foundUser.email.toLowerCase() === "admin@merkato.com"
-      ) {
+      if (user.role === "admin" || user.email.toLowerCase() === "admin@merkato.com") {
         navigate("/admin");
       } else {
         navigate(getRedirect());
       }
-    }, 800);
+    } catch {
+      const existingUsers = JSON.parse(localStorage.getItem("merkato_users_db")) || [];
+      const foundUser = existingUsers.find(
+        (u) =>
+          u.email.toLowerCase() === formData.email.toLowerCase() &&
+          u.password === formData.password,
+      );
+
+      if (!foundUser) {
+        setError("Invalid credential combination. Check email or password.");
+        setLoading(false);
+        return;
+      }
+
+      saveLocalUser(foundUser);
+      setLoading(false);
+      if (foundUser.role === "admin" || foundUser.email.toLowerCase() === "admin@merkato.com") {
+        navigate("/admin");
+      } else {
+        navigate(getRedirect());
+      }
+    }
   };
 
   return (

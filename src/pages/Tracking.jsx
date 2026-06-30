@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { fetchOrders as fetchOrdersApi, fetchOrder } from "../api/api";
 
 function normalizeOrder(o) {
   if (o.customerName) return o;
   return {
     ...o,
-    customerName: o.customer?.fullName || "Unknown",
+    id: o._id || o.id,
+    customerName: o.customerName || o.customer?.fullName || "Unknown",
     phone: o.customer?.phone || o.phone || "",
     address: o.customer?.location || o.address || "",
     totalPaid: o.totalPaid || o.total || 0,
@@ -27,9 +29,16 @@ export default function Tracking() {
   }, [navigate]);
 
   useEffect(() => {
-    const savedOrders =
-      JSON.parse(localStorage.getItem("merkato_orders")) || [];
-    setOrders(savedOrders.map(normalizeOrder));
+    const load = async () => {
+      try {
+        const data = await fetchOrdersApi();
+        setOrders(data.map(normalizeOrder));
+      } catch {
+        const savedOrders = JSON.parse(localStorage.getItem("merkato_orders")) || [];
+        setOrders(savedOrders.map(normalizeOrder));
+      }
+    };
+    load();
   }, [orderId]);
 
   const activeOrder = orders.find((o) => o.id == orderId);
