@@ -43,6 +43,8 @@ export default function Admin() {
     deleteOrder,
     clearOrders,
     refreshOrders,
+    recordPayment,
+    updatePaymentStatus,
   } = useAdmin();
 
   const [showForm, setShowForm] = useState(false);
@@ -163,6 +165,7 @@ export default function Admin() {
                   <th className="text-left px-4 py-3 font-bold">Customer</th>
                   <th className="text-left px-4 py-3 font-bold">Items</th>
                   <th className="text-left px-4 py-3 font-bold">Total</th>
+                  <th className="text-left px-4 py-3 font-bold">Payment</th>
                   <th className="text-left px-4 py-3 font-bold">Status</th>
                   <th className="text-left px-4 py-3 font-bold">Date</th>
                   <th className="text-right px-4 py-3 font-bold">Action</th>
@@ -171,7 +174,7 @@ export default function Admin() {
               <tbody>
                 {orders.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center text-gray-400 py-10 text-sm">
+                    <td colSpan={8} className="text-center text-gray-400 py-10 text-sm">
                       No orders yet.
                     </td>
                   </tr>
@@ -189,6 +192,43 @@ export default function Admin() {
                     </td>
                     <td className="px-4 py-3 font-bold text-gray-900">
                       {(o.totalPaid || 0).toLocaleString()} ETB
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase inline-flex items-center gap-1 ${
+                          o.paymentStatus === "Verified"
+                            ? "bg-green-50 text-green-700"
+                            : o.paymentStatus === "Received"
+                              ? "bg-blue-50 text-blue-700"
+                              : "bg-gray-50 text-gray-500"
+                        }`}>
+                          {o.paymentStatus || "Pending"}
+                        </span>
+                        {o.amountPaid != null && (
+                          <>
+                            <p className="text-[10px] text-gray-600">
+                              Paid: <span className="font-bold">{Number(o.amountPaid).toLocaleString()} ETB</span>
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              Invoice: {(o.totalPaid || 0).toLocaleString()} ETB
+                            </p>
+                            {o.paymentMethod && (
+                              <p className="text-[9px] text-gray-400">{o.paymentMethod}</p>
+                            )}
+                            {o.paymentDetails && o.paymentDetails !== "N/A" && (
+                              <p className="text-[9px] text-gray-400">{o.paymentDetails}</p>
+                            )}
+                          </>
+                        )}
+                        {o.paymentStatus === "Received" && (
+                          <button
+                            onClick={() => updatePaymentStatus(o.id, "Verified")}
+                            className="text-[9px] font-bold bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 rounded mt-1 cursor-pointer"
+                          >
+                            Verify Payment
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase inline-flex items-center gap-1 ${o.status === "Placed" ? "bg-blue-50 text-blue-700 border border-blue-100" : o.status === "Processing" ? "bg-yellow-50 text-yellow-700 border border-yellow-100" : o.status === "Shipped" ? "bg-purple-50 text-purple-700 border border-purple-100" : o.status === "Delivered" ? "bg-green-50 text-green-700 border border-green-100" : o.status === "Canceled" ? "bg-red-50 text-red-600 border border-red-100" : "bg-gray-100 text-gray-600"}`}>

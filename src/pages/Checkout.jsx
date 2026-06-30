@@ -5,22 +5,27 @@ import { useAdmin } from "../context/AdminContext";
 export default function Checkout() {
   const navigate = useNavigate();
   const { addOrder } = useAdmin();
+  const currentUser = JSON.parse(localStorage.getItem("merkato_current_user"));
 
   useEffect(() => {
-    if (!localStorage.getItem("merkato_current_user")) {
+    if (!currentUser) {
       navigate("/login?redirect=/checkout");
     }
-  }, [navigate]);
+  }, [currentUser, navigate]);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [generatedId, setGeneratedId] = useState("");
 
+  const fullName = currentUser
+    ? `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim()
+    : "";
+
   const [formData, setFormData] = useState({
-    fullName: "",
+    fullName,
     phone: "",
     address: "",
     paymentMethod: "telebirr",
-    enteredCost: "", // User enters the product cost manually here
+    enteredCost: "",
     accountNumber: "",
     walletNumber: "",
   });

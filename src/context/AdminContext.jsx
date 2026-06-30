@@ -153,6 +153,9 @@ export function AdminProvider({ children }) {
       ...order,
       id: Date.now(),
       status: "Placed",
+      paymentStatus: "Pending",
+      amountPaid: null,
+      paidAt: null,
       createdAt: new Date().toISOString(),
       date: new Date().toLocaleDateString("en-US", {
         month: "short",
@@ -173,6 +176,31 @@ export function AdminProvider({ children }) {
   // customer clicks "Order Arrived"
   const markDelivered = (id) => {
     updateOrderStatus(id, "Delivered");
+  };
+
+  // user records payment after placing order
+  const recordPayment = (id, method, details, amount) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === id
+          ? {
+              ...o,
+              paymentMethod: method,
+              paymentDetails: details,
+              amountPaid: Number(amount),
+              paidAt: new Date().toISOString(),
+              paymentStatus: "Received",
+            }
+          : o,
+      ),
+    );
+  };
+
+  // admin verifies or flags payment
+  const updatePaymentStatus = (id, newPaymentStatus) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, paymentStatus: newPaymentStatus } : o)),
+    );
   };
 
   const deleteOrder = (id) => {
@@ -202,6 +230,8 @@ export function AdminProvider({ children }) {
         deleteOrder,
         clearOrders,
         refreshOrders,
+        recordPayment,
+        updatePaymentStatus,
       }}
     >
       {children}
