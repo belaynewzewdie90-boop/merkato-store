@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useAdmin } from "../context/AdminContext";
 
 function normalizeOrder(o) {
   if (o.customerName) return o;
   return {
     ...o,
-    customerName: o.customer?.fullName || "Unknown",
+    id: o._id || o.id,
+    customerName: o.customerName || o.customer?.fullName || "Unknown",
     phone: o.customer?.phone || o.phone || "",
     address: o.customer?.location || o.address || "",
     totalPaid: o.totalPaid || o.total || 0,
@@ -37,13 +37,9 @@ export default function Tracking() {
 
   // poll localStorage for admin status changes
   useEffect(() => {
-    const load = () => {
-      const saved = JSON.parse(localStorage.getItem("merkato_orders")) || [];
-      setOrders(saved.map(normalizeOrder));
-    };
-    load();
-    const interval = setInterval(load, 2000);
-    return () => clearInterval(interval);
+    const savedOrders =
+      JSON.parse(localStorage.getItem("merkato_orders")) || [];
+    setOrders(savedOrders.map(normalizeOrder));
   }, [orderId]);
 
   const activeOrder = orders.find((o) => o.id == orderId);

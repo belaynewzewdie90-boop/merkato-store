@@ -58,7 +58,6 @@ export default function Auth() {
       );
     }
 
-    // If a user is already logged in, redirect them out automatically
     const sessionActive = localStorage.getItem("merkato_current_user");
     if (sessionActive) {
       const user = JSON.parse(sessionActive);
@@ -68,7 +67,7 @@ export default function Auth() {
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError(""); // Instantly remove warnings while typing
+    if (error) setError("");
   };
 
   // 📝 NEW USER REGISTRATION WORKFLOW

@@ -15,6 +15,7 @@ import {
   FiClock,
 } from "react-icons/fi";
 import { useAdmin } from "../context/AdminContext";
+import { fetchProducts as fetchProductsApi, createProductApi, updateProductApi, deleteProductApi, fetchOrders as fetchOrdersApi, updateOrderStatus as updateOrderStatusApi, deleteOrderApi } from "../api/api";
 
 const EMPTY_FORM = {
   name: "",
@@ -53,8 +54,17 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  // poll localStorage every 3s for order changes (cross-tab / same tab)
   useEffect(() => {
+    const syncProducts = async () => {
+      try {
+        const data = await fetchProductsApi();
+        if (data && data.length > 0) {
+          const mapped = data.map((p) => ({ ...p, id: p._id || p.id }));
+          localStorage.setItem("merkato_products", JSON.stringify(mapped));
+        }
+      } catch {}
+    };
+    syncProducts();
     const interval = setInterval(refreshOrders, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -107,24 +117,38 @@ export default function Admin() {
     setFormData(EMPTY_FORM);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {
-      ...formData,
+      name: formData.name,
       price: Number(formData.price) || 0,
+      category: formData.category,
+      image: formData.image,
+      description: formData.description,
       stock: Number(formData.stock) || 0,
     };
     if (editingId) {
       updateProduct(editingId, payload);
+      try { await updateProductApi(editingId, payload); } catch {}
     } else {
-      addProduct(payload);
+      try {
+        const created = await createProductApi(payload);
+        if (created) {
+          addProduct(created);
+        } else {
+          addProduct(payload);
+        }
+      } catch {
+        addProduct(payload);
+      }
     }
     closeForm();
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm("Delete this product permanently?")) {
       deleteProduct(id);
+      try { await deleteProductApi(id); } catch {}
     }
   };
 
@@ -245,8 +269,11 @@ export default function Admin() {
                         {o.status !== "Canceled" && o.status !== "Delivered" && (
                           <select
                             value=""
-                            onChange={(e) => {
-                              if (e.target.value) updateOrderStatus(o.id, e.target.value);
+                            onChange={async (e) => {
+                              if (e.target.value) {
+                                updateOrderStatus(o.id, e.target.value);
+                                try { await updateOrderStatusApi(o.id, e.target.value); } catch {}
+                              }
                               e.target.value = "";
                             }}
                             className="text-[10px] border border-gray-200 rounded px-1 py-1 outline-none focus:border-orange-500 bg-white"
@@ -263,8 +290,11 @@ export default function Admin() {
                           </select>
                         )}
                         <IconBtn
-                          onClick={() => {
-                            if (confirm("Delete this order?")) deleteOrder(o.id);
+                          onClick={async () => {
+                            if (confirm("Delete this order?")) {
+                              deleteOrder(o.id);
+                              try { await deleteOrderApi(o.id); } catch {}
+                            }
                           }}
                           color="hover:bg-red-50 text-red-500"
                           title="Delete"

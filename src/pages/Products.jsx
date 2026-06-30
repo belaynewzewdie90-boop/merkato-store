@@ -1,16 +1,102 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FiSearch, FiX } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
-import { useAdmin } from "../context/AdminContext";
+import { fetchProducts as fetchProductsApi } from "../api/api";
+
+const SEED_PRODUCTS = [
+  {
+    id: 1,
+    name: "Premium Ethiopian Leather Shoes",
+    price: 3400,
+    category: "Fashion",
+    image:
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80",
+    description:
+      "100% genuine handcrafted local leather with exceptional durable sole structures.",
+    stock: 12,
+  },
+  {
+    id: 2,
+    name: "Traditional Handcrafted Coffee Set",
+    price: 1850,
+    category: "Home & Living",
+    image:
+      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80",
+    description:
+      "Classic ceramic jebena and coordinate cups setup for genuine cultural brewing.",
+    stock: 8,
+  },
+  {
+    id: 3,
+    name: "Premium Woven Cotton Scarf (Netela)",
+    price: 1200,
+    category: "Traditional Textiles",
+    image:
+      "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80",
+    description:
+      "Elegant, lightweight pure cotton hand-woven by local masters with golden tilet boundaries.",
+    stock: 0,
+  },
+  {
+    id: 4,
+    name: "Organic Harar Coffee Beans (1KG)",
+    price: 950,
+    category: "Food & Beverage",
+    image:
+      "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=600&auto=format&fit=crop&q=80",
+    description:
+      "Sun-dried single-origin medium roast Arabica beans with distinctive fruity notes.",
+    stock: 25,
+  },
+];
 
 export default function Products() {
   const { addToCart } = useCart();
-  const { products } = useAdmin();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [category, setCategory] = useState("all");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        console.log("[Products] Fetching from API...");
+        const data = await fetchProductsApi();
+        console.log("[Products] API response:", data);
+        if (data && data.length > 0) {
+          console.log("[Products] Using API data:", data.length, "products");
+          setProducts(data);
+          localStorage.setItem("merkato_products", JSON.stringify(data));
+          return;
+        }
+        console.warn("[Products] API returned empty, falling back to localStorage");
+      } catch (err) {
+        console.warn("[Products] API fetch failed:", err.message);
+      }
+
+      try {
+        const stored = localStorage.getItem("merkato_products");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.length > 0) {
+            console.log("[Products] Loaded from localStorage:", parsed.length, "products");
+            setProducts(parsed);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("[Products] localStorage parse error:", e);
+      }
+
+      console.log("[Products] Using SEED_PRODUCTS fallback");
+      localStorage.setItem("merkato_products", JSON.stringify(SEED_PRODUCTS));
+      setProducts(SEED_PRODUCTS);
+    };
+    load().finally(() => setLoading(false));
+  }, []);
 
   const categories = useMemo(() => {
     return [...new Set(products.map((p) => p.category))];
@@ -24,7 +110,7 @@ export default function Products() {
         ? true
         : p.name.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q);
+          (p.description || "").toLowerCase().includes(q);
       const matchCategory = category === "all" || p.category === category;
       return matchSearch && matchCategory;
     });
@@ -92,7 +178,12 @@ export default function Products() {
         </select>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-20">
+          <div className="w-10 h-10 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500 text-lg font-semibold">Loading products...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <FiSearch className="mx-auto text-gray-300 mb-4" size={48} />
           <p className="text-gray-500 text-lg font-semibold">No products found</p>

@@ -61,7 +61,11 @@ export default function Cart() {
       amountPaid: null,
       paymentStatus: "Pending",
     };
-    const id = addOrder(newOrder);
+    let id = addOrder(newOrder);
+    try {
+      const backendOrder = await createOrder(newOrder);
+      id = backendOrder._id || id;
+    } catch {}
     setOrderId(id);
     setPaymentForm((prev) => ({ ...prev, amountPaid: totalCost }));
     clearCart();

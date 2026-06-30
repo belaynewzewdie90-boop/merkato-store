@@ -87,6 +87,7 @@ export default function Header() {
               <span className="text-xs md:text-sm text-gray-300 hidden sm:inline">
                 👋 {user.firstName || "User"}
               </span>
+
               <button
                 onClick={handleLogout}
                 className="text-xs font-bold text-red-400 bg-red-400/10 border border-red-400/30 px-2 md:px-3 py-1.5 rounded-lg hover:bg-red-400/20 transition-all cursor-pointer inline-flex items-center gap-1.5"
