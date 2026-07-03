@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { fetchOrders as fetchOrdersApi, fetchOrder } from "../api/api";
+import { useSocket } from "../context/SocketContext";
+import { useAdmin } from "../context/AdminContext";
 
 function normalizeOrder(o) {
-  if (o.customerName) return o;
   return {
     ...o,
     id: o._id || o.id,
@@ -21,6 +22,8 @@ export default function Tracking() {
   const navigate = useNavigate();
   const { orderId } = useParams();
   const [orders, setOrders] = useState([]);
+  const socket = useSocket();
+  const { updateOrderStatus } = useAdmin();
 
   useEffect(() => {
     if (!localStorage.getItem("merkato_current_user")) {
@@ -28,18 +31,88 @@ export default function Tracking() {
     }
   }, [navigate]);
 
+  const mergeOrders = useCallback((apiOrders, localOrders) => {
+    const seen = new Set();
+    const merged = [];
+    for (const o of [...apiOrders, ...localOrders]) {
+      const n = normalizeOrder(o);
+      if (!seen.has(n.id)) {
+        seen.add(n.id);
+        merged.push(n);
+      }
+    }
+    return merged;
+  }, []);
+
   useEffect(() => {
     const load = async () => {
+      let apiData = [];
       try {
         const data = await fetchOrdersApi();
-        setOrders(data.map(normalizeOrder));
-      } catch {
-        const savedOrders = JSON.parse(localStorage.getItem("merkato_orders")) || [];
-        setOrders(savedOrders.map(normalizeOrder));
+        console.log("[Tracking] API orders:", data?.length);
+        if (data && data.length > 0) {
+          apiData = data;
+        }
+      } catch (err) {
+        console.warn("[Tracking] API fetch failed:", err.message);
       }
+
+      let localData = [];
+      try {
+        const stored = localStorage.getItem("merkato_orders");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.length > 0) {
+            localData = parsed;
+          }
+        }
+      } catch (e) {
+        console.warn("[Tracking] localStorage parse error:", e);
+      }
+
+      const merged = mergeOrders(apiData, localData);
+      console.log("[Tracking] Merged orders:", merged.length);
+      setOrders(merged);
     };
     load();
-  }, [orderId]);
+  }, [orderId, mergeOrders]);
+
+  const updateOrderInState = useCallback((updatedOrder) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id == (updatedOrder._id || updatedOrder.id)
+          ? { ...normalizeOrder(updatedOrder) }
+          : o,
+      ),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    if (orderId) {
+      socket.emit("trackOrder", orderId);
+      console.log(`[Tracking] Joined socket room for order:${orderId}`);
+    }
+
+    const handleStatusUpdate = (data) => {
+      console.log("[Tracking] Real-time status update:", data);
+      updateOrderInState(data);
+    };
+
+    const handleDeleted = ({ id }) => {
+      console.log("[Tracking] Order deleted via socket:", id);
+      setOrders((prev) => prev.filter((o) => o.id != id));
+    };
+
+    socket.on("order:statusUpdated", handleStatusUpdate);
+    socket.on("order:deleted", handleDeleted);
+
+    return () => {
+      socket.off("order:statusUpdated", handleStatusUpdate);
+      socket.off("order:deleted", handleDeleted);
+    };
+  }, [socket, orderId, updateOrderInState]);
 
   const activeOrder = orders.find((o) => o.id == orderId);
 
@@ -60,22 +133,22 @@ export default function Tracking() {
     }
   };
 
-  // Function to let the user cancel the order locally
   const handleCancelOrder = () => {
     const confirmCancel = window.confirm(
       "Are you sure you want to cancel this order?",
     );
     if (!confirmCancel) return;
 
-    const updatedOrders = orders.map((order) => {
-      if (order.id == orderId) {
-        return { ...order, status: "Canceled" };
-      }
-      return order;
-    });
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id == orderId) {
+          return { ...order, status: "Canceled" };
+        }
+        return order;
+      }),
+    );
 
-    setOrders(updatedOrders);
-    localStorage.setItem("merkato_orders", JSON.stringify(updatedOrders));
+    updateOrderStatus(Number(orderId), "Canceled");
   };
 
   if (orderId && activeOrder) {

@@ -15,6 +15,7 @@ import {
   FiClock,
 } from "react-icons/fi";
 import { useAdmin } from "../context/AdminContext";
+import { useSocket } from "../context/SocketContext";
 import { fetchProducts as fetchProductsApi, createProductApi, updateProductApi, deleteProductApi, fetchOrders as fetchOrdersApi, updateOrderStatus as updateOrderStatusApi, deleteOrderApi } from "../api/api";
 
 const EMPTY_FORM = {
@@ -52,6 +53,8 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
+  const socket = useSocket();
+
   useEffect(() => {
     const syncProducts = async () => {
       try {
@@ -63,9 +66,39 @@ export default function Admin() {
       } catch {}
     };
     syncProducts();
-    const interval = setInterval(refreshOrders, 3000);
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.emit("joinAdmin");
+    console.log("[Admin] Joined admin socket room");
+
+    const handleNewOrder = (order) => {
+      console.log("[Admin] New order received via socket:", order._id);
+      refreshOrders();
+    };
+
+    const handleStatusUpdate = (order) => {
+      console.log("[Admin] Order status updated via socket:", order._id);
+      refreshOrders();
+    };
+
+    const handleDeleted = ({ id }) => {
+      console.log("[Admin] Order deleted via socket:", id);
+      refreshOrders();
+    };
+
+    socket.on("order:created", handleNewOrder);
+    socket.on("order:statusUpdated", handleStatusUpdate);
+    socket.on("order:deleted", handleDeleted);
+
+    return () => {
+      socket.off("order:created", handleNewOrder);
+      socket.off("order:statusUpdated", handleStatusUpdate);
+      socket.off("order:deleted", handleDeleted);
+    };
+  }, [socket]);
 
   const stats = useMemo(() => {
     const total = products.length;
