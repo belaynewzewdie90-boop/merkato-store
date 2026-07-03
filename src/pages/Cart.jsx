@@ -2,13 +2,18 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAdmin } from "../context/AdminContext";
-import { createOrder } from "../api/api";
-import { FiTrash2, FiCheckCircle, FiTruck } from "react-icons/fi";
+import { FiTrash2, FiCheckCircle, FiTruck, FiArrowLeft } from "react-icons/fi";
+
+const PAYMENT_METHODS = [
+  { value: "cod", label: "Cash on Delivery", icon: "💵" },
+  { value: "telebirr", label: "Telebirr", icon: "📱" },
+  { value: "cbe", label: "CBE Bank", icon: "🏦" },
+];
 
 export default function Cart() {
   const navigate = useNavigate();
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { addOrder, markDelivered } = useAdmin();
+  const { addOrder, recordPayment, markDelivered } = useAdmin();
 
   useEffect(() => {
     if (!localStorage.getItem("merkato_current_user")) {
@@ -24,13 +29,26 @@ export default function Cart() {
   const [ordered, setOrdered] = useState(false);
   const [orderId, setOrderId] = useState(null);
 
+  // payment step
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    paymentMethod: "cod",
+    walletNumber: "",
+    accountNumber: "",
+    amountPaid: "",
+  });
+
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
   const totalCost = subtotal + 150;
 
-  const handleOrderSubmit = async (e) => {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleOrderSubmit = (e) => {
     e.preventDefault();
     const newOrder = {
       customerName: formData.fullName,
@@ -38,8 +56,10 @@ export default function Cart() {
       address: formData.location,
       items: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.quantity, image: i.image })),
       totalPaid: totalCost,
-      paymentMethod: "Cash on Delivery",
-      paymentDetails: "N/A",
+      paymentMethod: null,
+      paymentDetails: null,
+      amountPaid: null,
+      paymentStatus: "Pending",
     };
     let id = addOrder(newOrder);
     try {
@@ -47,32 +67,204 @@ export default function Cart() {
       id = backendOrder._id || id;
     } catch {}
     setOrderId(id);
-    setOrdered(true);
-    setCustomer(formData);
+    setPaymentForm((prev) => ({ ...prev, amountPaid: totalCost }));
     clearCart();
     setFormData({ fullName: "", phone: "", location: "" });
+    setShowPayment(true);
+  };
+
+  const handlePaymentSubmit = (e) => {
+    e.preventDefault();
+    if (paymentForm.paymentMethod === "telebirr" && !paymentForm.walletNumber) {
+      alert("Please enter your Telebirr phone number.");
+      return;
+    }
+    if (paymentForm.paymentMethod === "cbe" && !paymentForm.accountNumber) {
+      alert("Please enter your CBE account number.");
+      return;
+    }
+    if (!paymentForm.amountPaid || Number(paymentForm.amountPaid) <= 0) {
+      alert("Please enter the amount you paid.");
+      return;
+    }
+
+    const labels = { cod: "Cash on Delivery", telebirr: "Telebirr Wallet", cbe: "CBE Bank" };
+    const detailsMap = { cod: "N/A", telebirr: paymentForm.walletNumber, cbe: paymentForm.accountNumber };
+
+    recordPayment(
+      orderId,
+      labels[paymentForm.paymentMethod],
+      detailsMap[paymentForm.paymentMethod],
+      paymentForm.amountPaid,
+    );
+    setOrdered(true);
+    setShowPayment(false);
   };
 
   const [customer, setCustomer] = useState(null);
 
-  // order placed - show success with "Order Arrived" button
+  useEffect(() => {
+    if (ordered && orderId) {
+      setCustomer({
+        fullName: formData.fullName,
+        location: formData.location,
+      });
+    }
+  }, [ordered, orderId]);
+
+  // payment step screen (shown right after order is placed)
+  if (showPayment && orderId && !ordered) {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-lg">
+        <button
+          onClick={() => {
+            setShowPayment(false);
+            setOrderId(null);
+          }}
+          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-orange-500 mb-6 font-medium cursor-pointer"
+        >
+          <FiArrowLeft /> Back to cart
+        </button>
+
+        <div className="border rounded-2xl p-6 bg-white shadow-sm">
+          <div className="text-center mb-6">
+            <FiCheckCircle className="text-green-500 text-4xl mx-auto mb-3" />
+            <h3 className="text-xl font-black text-gray-900">
+              Order #{orderId} Placed!
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Now record your payment to complete the order.
+            </p>
+          </div>
+
+          <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
+            <p className="text-sm text-gray-700">
+              Total invoice:{" "}
+              <span className="font-black text-orange-600">{totalCost} ETB</span>
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the amount you paid below so the admin can verify.
+            </p>
+          </div>
+
+          <form onSubmit={handlePaymentSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">
+                Amount You Paid (ETB)
+              </label>
+              <input
+                type="number"
+                value={paymentForm.amountPaid}
+                onChange={(e) =>
+                  setPaymentForm({ ...paymentForm, amountPaid: e.target.value })
+                }
+                placeholder="Enter amount paid"
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                Payment Method
+              </label>
+              <div className="grid grid-cols-1 gap-2">
+                {PAYMENT_METHODS.map((pm) => (
+                  <label
+                    key={pm.value}
+                    className={`flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition-all ${
+                      paymentForm.paymentMethod === pm.value
+                        ? "border-orange-500 bg-orange-50/50 ring-1 ring-orange-500"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value={pm.value}
+                      checked={paymentForm.paymentMethod === pm.value}
+                      onChange={(e) =>
+                        setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })
+                      }
+                      className="hidden"
+                    />
+                    <span className="text-lg">{pm.icon}</span>
+                    <span className={`text-xs font-bold ${
+                      paymentForm.paymentMethod === pm.value
+                        ? "text-orange-600"
+                        : "text-gray-700"
+                    }`}>
+                      {pm.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {paymentForm.paymentMethod === "telebirr" && (
+              <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl space-y-1">
+                <label className="block text-xs font-bold text-blue-800">
+                  Telebirr Mobile Number
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.walletNumber}
+                  onChange={(e) =>
+                    setPaymentForm({ ...paymentForm, walletNumber: e.target.value })
+                  }
+                  placeholder="09xxxxxxxx"
+                  className="w-full border p-2.5 rounded-lg text-sm bg-white outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {paymentForm.paymentMethod === "cbe" && (
+              <div className="bg-green-50 border border-green-100 p-3 rounded-xl space-y-1">
+                <label className="block text-xs font-bold text-green-800">
+                  CBE Account Number
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.accountNumber}
+                  onChange={(e) =>
+                    setPaymentForm({ ...paymentForm, accountNumber: e.target.value })
+                  }
+                  placeholder="1000xxxxxxxxxx"
+                  className="w-full border p-2.5 rounded-lg text-sm bg-white outline-none focus:border-green-500"
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-all"
+            >
+              Submit Payment
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // order placed + payment recorded → success
   if (ordered && orderId) {
     return (
       <div className="container mx-auto px-4 py-16 max-w-md text-center">
         <FiCheckCircle className="text-green-500 text-5xl mb-4" />
         <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          Order Placed Successfully!
+          Order Complete!
         </h3>
-        <p className="text-gray-600 text-sm mb-6">
-          Thank you, {customer?.fullName || "Customer"}. We will deliver to{" "}
-          {customer?.location || "your address"} shortly.
+        <p className="text-gray-600 text-sm mb-2">
+          Thank you, {formData.fullName || customer?.fullName || "Customer"}.
+        </p>
+        <p className="text-gray-500 text-xs mb-6">
+          We will deliver to {formData.location || customer?.location || "your address"}.
         </p>
         <button
           onClick={() => {
             markDelivered(orderId);
             setOrdered(false);
             setOrderId(null);
-            setCustomer(null);
           }}
           className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mx-auto"
         >
@@ -81,27 +273,6 @@ export default function Cart() {
         <p className="text-xs text-gray-400 mt-4">
           Click when you receive your order
         </p>
-      </div>
-    );
-  }
-
-  // order delivered confirmation
-  if (ordered && !orderId) {
-    return (
-      <div className="container mx-auto px-4 py-16 max-w-md text-center">
-        <FiCheckCircle className="text-green-500 text-5xl mb-4" />
-        <h3 className="text-2xl font-bold text-green-600 mb-2">
-          Order Delivered!
-        </h3>
-        <p className="text-gray-600 text-sm mb-6">
-          Thank you, {customer?.fullName || "Customer"} for shopping with Merkato Store.
-        </p>
-        <Link
-          to="/products"
-          className="text-orange-500 font-bold hover:underline"
-        >
-          Continue Shopping
-        </Link>
       </div>
     );
   }
@@ -192,44 +363,46 @@ export default function Cart() {
             <div>
               <input
                 type="text"
+                name="fullName"
                 required
                 placeholder="Full Name"
                 value={formData.fullName}
-                onChange={(e) =>
-                  setFormData({ ...formData, fullName: e.target.value })
-                }
+                onChange={handleChange}
                 className="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
               />
             </div>
             <div>
               <input
                 type="tel"
+                name="phone"
                 required
                 placeholder="Phone Number"
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={handleChange}
                 className="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
               />
             </div>
             <div>
               <input
                 type="text"
+                name="location"
                 required
                 placeholder="Drop-off Address (e.g. Bole)"
                 value={formData.location}
-                onChange={(e) =>
-                  setFormData({ ...formData, location: e.target.value })
-                }
+                onChange={handleChange}
                 className="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-orange-500 outline-none"
               />
             </div>
+
+            <p className="text-[10px] text-gray-400 pt-1">
+              You will choose a payment method after placing the order.
+            </p>
+
             <button
               type="submit"
               className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2.5 rounded-lg transition-colors"
             >
-              Place Cash on Delivery Order
+              Place Order
             </button>
           </form>
         </div>

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { loginUser, registerUser, setToken } from "../api/api";
+import { Link, useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
+import { FcGoogle } from "react-icons/fc";
+import { useAuth } from "../App";
 
 export default function Auth() {
+  const { setUser } = useAuth();
   const navigate = useNavigate();
 
   const getRedirect = () => {
@@ -10,16 +13,30 @@ export default function Auth() {
     return params.get("redirect") || "/products";
   };
   const [isLogin, setIsLogin] = useState(true);
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
+    acceptTerms: false,
   });
 
+  const toggleAdminMode = () => {
+    const next = !isAdminMode;
+    setIsAdminMode(next);
+    setError("");
+    if (next) {
+      setFormData((prev) => ({ ...prev, email: "admin@merkato.com" }));
+    }
+  };
+
+  // 🔐 BACKUP SEEDER: Double check that the admin exists whenever this page mounts
   useEffect(() => {
     const existingUsers =
       JSON.parse(localStorage.getItem("merkato_users_db")) || [];
@@ -53,19 +70,12 @@ export default function Auth() {
     if (error) setError("");
   };
 
-  const saveLocalUser = (user) => {
-    localStorage.setItem("merkato_current_user", JSON.stringify(user));
-  };
-
+  // 📝 NEW USER REGISTRATION WORKFLOW
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    if (formData.email.toLowerCase() === "admin@merkato.com") {
-      setError("This specific email address is strictly reserved for store systems.");
-      setLoading(false);
-      return;
-    }
+    setError("");
+    setSuccess("");
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match. Please verify your typing.");
@@ -74,93 +84,155 @@ export default function Auth() {
     }
 
     try {
-      await registerUser({
-        firstName: formData.name.split(" ")[0] || formData.name,
-        lastName: formData.name.split(" ")[1] || "User",
-        email: formData.email,
-        password: formData.password,
-        acceptTerms: true,
-      });
-
-      const loginRes = await loginUser(formData.email, formData.password);
-      const user = {
-        id: loginRes.user?.id || `USR-${Date.now()}`,
-        name: formData.name,
-        email: formData.email.toLowerCase(),
-        role: loginRes.user?.role || "customer",
-      };
-      saveLocalUser(user);
-
-      setLoading(false);
-      navigate(getRedirect());
-    } catch (err) {
-      const existingUsers = JSON.parse(localStorage.getItem("merkato_users_db")) || [];
-      const emailExists = existingUsers.some(
-        (u) => u.email.toLowerCase() === formData.email.toLowerCase(),
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/v1/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+            acceptTerms: formData.acceptTerms,
+          }),
+        },
       );
-      if (emailExists) {
-        setError("An account with this email address is already registered.");
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message);
         setLoading(false);
         return;
       }
 
-      const newCustomer = {
-        id: `USR-${Date.now()}`,
-        name: formData.name,
-        email: formData.email.toLowerCase(),
-        password: formData.password,
-        role: "customer",
-      };
-      localStorage.setItem("merkato_users_db", JSON.stringify([...existingUsers, newCustomer]));
-      saveLocalUser(newCustomer);
       setLoading(false);
-      navigate(getRedirect());
+      setSuccess(data.message);
+      setError("");
+      setIsLogin(true);
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        acceptTerms: false,
+      });
+    } catch (err) {
+      setError("Connection error. Please check your network and try again.");
+      setLoading(false);
     }
   };
 
+  // 🔑 SESSION LOGIN WORKFLOW
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+    setSuccess("");
+
+    if (isAdminMode) {
+      setError("");
+    }
 
     try {
-      const res = await loginUser(formData.email, formData.password);
-      const user = {
-        id: res.user?.id || `USR-${Date.now()}`,
-        name: `${res.user?.firstName || ""} ${res.user?.lastName || ""}`.trim() || formData.email,
-        email: formData.email.toLowerCase(),
-        role: res.user?.role || "customer",
-      };
-      saveLocalUser(user);
-
-      setLoading(false);
-      if (user.role === "admin" || user.email.toLowerCase() === "admin@merkato.com") {
-        navigate("/admin");
-      } else {
-        navigate(getRedirect());
-      }
-    } catch {
-      const existingUsers = JSON.parse(localStorage.getItem("merkato_users_db")) || [];
-      const foundUser = existingUsers.find(
-        (u) =>
-          u.email.toLowerCase() === formData.email.toLowerCase() &&
-          u.password === formData.password,
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/v1/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        },
       );
 
-      if (!foundUser) {
-        setError("Invalid credential combination. Check email or password.");
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message);
         setLoading(false);
         return;
       }
 
-      saveLocalUser(foundUser);
+      setUser(data.user);
+      localStorage.setItem(
+        "merkato_current_user",
+        JSON.stringify(data.user),
+      );
+      localStorage.setItem(
+        "merkato_access_token",
+        data.accessToken,
+      );
+      localStorage.setItem(
+        "merkato_refresh_token",
+        data.refreshToken,
+      );
+
       setLoading(false);
-      if (foundUser.role === "admin" || foundUser.email.toLowerCase() === "admin@merkato.com") {
-        navigate("/admin");
+      if (data.user.role === "admin") {
+        navigate("/admin/dashboard", { replace: true });
       } else {
         navigate(getRedirect());
       }
+    } catch (err) {
+      setError("Connection error. Please check your network and try again.");
+      setLoading(false);
     }
   };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/v1/auth/google`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: tokenResponse.access_token }),
+          },
+        );
+
+        const data = await res.json();
+
+        if (!data.success) {
+          setError(data.message);
+          setLoading(false);
+          return;
+        }
+
+        setUser(data.user);
+        localStorage.setItem(
+          "merkato_current_user",
+          JSON.stringify(data.user),
+        );
+        localStorage.setItem(
+          "merkato_access_token",
+          data.accessToken,
+        );
+        localStorage.setItem(
+          "merkato_refresh_token",
+          data.refreshToken,
+        );
+
+        setLoading(false);
+        if (data.user.role === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else {
+          navigate(getRedirect());
+        }
+      } catch {
+        setError("Google sign-in failed. Please try again.");
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setError("Google sign-in failed. Please try again.");
+    },
+  });
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[85vh] px-4 py-12 bg-gradient-to-b from-white to-gray-50">
@@ -183,6 +255,11 @@ export default function Auth() {
             {error}
           </div>
         )}
+        {success && (
+          <div className="p-4 mb-5 text-xs font-semibold text-green-700 bg-green-50 border border-green-100 rounded-2xl">
+            {success}
+          </div>
+        )}
 
         {/* Unified Application Form Control */}
         <form
@@ -190,20 +267,36 @@ export default function Auth() {
           className="space-y-4"
         >
           {!isLogin && (
-            <div>
-              <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-gray-700">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
-                placeholder="Jhon Kebede"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-gray-700">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  required
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
+                  placeholder="Jhon"
+                />
+              </div>
+              <div>
+                <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-gray-700">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  required
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
+                  placeholder="Kebede"
+                />
+              </div>
+            </>
           )}
 
           <div>
@@ -232,9 +325,43 @@ export default function Auth() {
               value={formData.password}
               onChange={handleInputChange}
               className="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
-              placeholder="••••••••"
+                placeholder="••••••••"
             />
           </div>
+
+          {isLogin && (
+            <div className="text-right -mt-2">
+              <Link
+                to="/forgot-password"
+                className="text-xs font-semibold text-orange-500 hover:text-orange-600 hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+          )}
+
+          {isLogin && (
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Admin Access
+              </span>
+              <button
+                type="button"
+                onClick={toggleAdminMode}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
+                  isAdminMode ? "bg-orange-500" : "bg-gray-200"
+                }`}
+                role="switch"
+                aria-checked={isAdminMode}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                    isAdminMode ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
 
           {!isLogin && (
             <div>
@@ -253,6 +380,30 @@ export default function Auth() {
             </div>
           )}
 
+          {!isLogin && (
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="acceptTerms"
+                checked={formData.acceptTerms}
+                onChange={(e) =>
+                  setFormData({ ...formData, acceptTerms: e.target.checked })
+                }
+                className="mt-0.5 w-4 h-4 accent-orange-500"
+              />
+              <span className="text-xs text-gray-500 leading-relaxed">
+                I accept the{" "}
+                <span className="text-orange-500 font-semibold">
+                  Terms of Service
+                </span>{" "}
+                and{" "}
+                <span className="text-orange-500 font-semibold">
+                  Privacy Policy
+                </span>
+              </span>
+            </label>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -260,6 +411,8 @@ export default function Auth() {
           >
             {loading ? (
               <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : isAdminMode ? (
+              "Sign In as Administrator"
             ) : isLogin ? (
               "Login In Account"
             ) : (
@@ -268,18 +421,47 @@ export default function Auth() {
           </button>
         </form>
 
+        {/* Divider */}
+        {!isAdminMode && (
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-3 text-gray-400 font-semibold">
+                Or continue with
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Google Sign-In Button */}
+        {!isAdminMode && (
+        <button
+          onClick={() => googleLogin()}
+          className="w-full py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center gap-3 cursor-pointer"
+        >
+          <FcGoogle className="text-xl" />
+          {isLogin ? "Sign in with Google" : "Sign up with Google"}
+        </button>
+        )}
+
         {/* Interface Panel Navigation Toggle Link */}
         <div className="mt-8 pt-6 border-t border-gray-100 text-sm text-center text-gray-600">
           {isLogin ? "New customer to Merkato?" : "Already possess a profile?"}{" "}
           <button
             onClick={() => {
               setIsLogin(!isLogin);
+              setIsAdminMode(false);
               setError("");
+              setSuccess("");
               setFormData({
-                name: "",
+                firstName: "",
+                lastName: "",
                 email: "",
                 password: "",
                 confirmPassword: "",
+                acceptTerms: false,
               });
             }}
             className="font-bold text-orange-500 hover:text-orange-600 hover:underline focus:outline-none cursor-pointer"
