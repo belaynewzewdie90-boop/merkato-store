@@ -35,10 +35,9 @@ const STEPS = [
 export default function Tracking() {
   const navigate = useNavigate();
   const { orderId } = useParams();
-  const { updateOrderStatus } = useAdmin();
-  const [orders, setOrders] = useState([]);
-  const socket = useSocket();
-  const { updateOrderStatus } = useAdmin();
+ const [orders, setOrders] = useState([]);
+const socket = useSocket();
+const { updateOrderStatus } = useAdmin();
 
   useEffect(() => {
     if (!localStorage.getItem("merkato_current_user")) {
@@ -151,26 +150,28 @@ export default function Tracking() {
     }
   };
 
-  const handleCancelOrder = () => {
-    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+ const handleCancelOrder = () => {
+  if (!window.confirm("Are you sure you want to cancel this order?")) return;
 
-    setOrders((prev) =>
-      prev.map((order) => {
-        if (order.id == orderId) {
-          return { ...order, status: "Canceled" };
-        }
-        return order;
-      }),
-    );
+  setOrders((prev) =>
+    prev.map((order) => {
+      if (order.id == orderId) {
+        return { ...order, status: "Canceled" };
+      }
+      return order;
+    }),
+  );
+
+  updateOrderStatus(Number(orderId), "Canceled");
+};
 
 <<<<<<< HEAD
-    updateOrderStatus(Number(orderId), "Canceled");
+       updateOrderStatus(Number(orderId), "Canceled");
 =======
     localStorage.setItem("merkato_orders", JSON.stringify(updatedOrders));
     updateOrderStatus(Number(orderId), "Canceled");
     setOrders(updatedOrders.map(normalizeOrder));
 >>>>>>> 5d1537174f5045ccac1b824a02721d21246edac2
-  };
 
   if (orderId && activeOrder) {
     const currentStep = getStatusStep(activeOrder.status || "Placed");
