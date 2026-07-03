@@ -1,5 +1,5 @@
 import { Navigate, Link, Outlet, useLocation } from "react-router-dom";
-import { FiGrid, FiLogOut, FiHome } from "react-icons/fi";
+import { FiGrid, FiLogOut, FiHome, FiFileText } from "react-icons/fi";
 import { useAuth } from "../App";
 
 export default function AdminLayout() {
@@ -42,6 +42,13 @@ export default function AdminLayout() {
           >
             <FiGrid className="shrink-0" />
             Dashboard
+          </Link>
+          <Link
+            to="/admin/orders"
+            className={`flex items-center gap-3 px-4 py-2.5 text-sm rounded-r-lg transition-all ${isActive("/admin/orders")}`}
+          >
+            <FiFileText className="shrink-0" />
+            Orders
           </Link>
         </nav>
 

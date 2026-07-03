@@ -148,10 +148,16 @@ export function AdminProvider({ children }) {
   };
 
   // add new order from customer
-  const addOrder = (order) => {
+  const addOrder = (order, backendId) => {
+    const localId = Date.now();
+    const currentUser = (() => {
+      try { return JSON.parse(localStorage.getItem("merkato_current_user")); } catch { return null; }
+    })();
     const newOrder = {
       ...order,
-      id: Date.now(),
+      id: backendId || localId,
+      backendId: backendId || null,
+      userEmail: currentUser?.email || null,
       status: "Placed",
       paymentStatus: "Pending",
       amountPaid: null,
@@ -164,12 +170,21 @@ export function AdminProvider({ children }) {
       }),
     };
     setOrders((prev) => [newOrder, ...prev]);
-    return newOrder.id;
+    return backendId || localId;
+  };
+
+  // update local order to use backend _id after API creation succeeds
+  const updateOrderId = (oldId, newId) => {
+    setOrders((prev) => {
+      const updated = prev.map((o) => (o.id === oldId || o.backendId === oldId ? { ...o, id: newId, _id: newId, backendId: newId } : o));
+      localStorage.setItem("merkato_orders", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const updateOrderStatus = (id, newStatus) => {
     setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o)),
+      prev.map((o) => (o.id == id || o.backendId == id ? { ...o, status: newStatus } : o)),
     );
   };
 
@@ -182,7 +197,7 @@ export function AdminProvider({ children }) {
   const recordPayment = (id, method, details, amount) => {
     setOrders((prev) =>
       prev.map((o) =>
-        o.id === id
+        o.id == id || o.backendId == id
           ? {
               ...o,
               paymentMethod: method,
@@ -195,20 +210,49 @@ export function AdminProvider({ children }) {
       ),
     );
   };
-
+  
   // admin verifies or flags payment
   const updatePaymentStatus = (id, newPaymentStatus) => {
     setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, paymentStatus: newPaymentStatus } : o)),
+      prev.map((o) => (o.id == id || o.backendId == id ? { ...o, paymentStatus: newPaymentStatus } : o)),
     );
   };
 
   const deleteOrder = (id) => {
-    setOrders((prev) => prev.filter((o) => o.id !== id));
+    setOrders((prev) => prev.filter((o) => o.id != id && o.backendId != id));
   };
 
   const clearOrders = () => {
     setOrders([]);
+  };
+
+  /**
+   * Merges API orders with the current React state.
+   * Uses functional setState to avoid race conditions.
+   * When a matching local order exists, local fields take precedence
+   * so that admin actions (status update, payment verify, delete) are never
+   * overwritten by stale API data on the next poll cycle.
+   */
+  const mergeApiOrders = (apiOrders) => {
+    if (!apiOrders || apiOrders.length === 0) return;
+    const mapped = apiOrders.map((o) => ({ ...o, id: o._id || o.id }));
+    setOrders((prev) => {
+      const merged = mapped.map((apiOrder) => {
+        const match = prev.find((lo) => lo.id === apiOrder.id || lo._id === apiOrder.id);
+        if (match) {
+          return { ...apiOrder, ...match };
+        }
+        return apiOrder;
+      });
+      for (const localOrder of prev) {
+        const exists = merged.some((o) => o.id === localOrder.id || o.id === localOrder._id);
+        if (!exists) {
+          merged.push(localOrder);
+        }
+      }
+      localStorage.setItem("merkato_orders", JSON.stringify(merged));
+      return merged;
+    });
   };
 
   return (
@@ -225,6 +269,7 @@ export function AdminProvider({ children }) {
         releaseProduct,
         orders,
         addOrder,
+        updateOrderId,
         updateOrderStatus,
         markDelivered,
         deleteOrder,
@@ -232,6 +277,7 @@ export function AdminProvider({ children }) {
         refreshOrders,
         recordPayment,
         updatePaymentStatus,
+        mergeApiOrders,
       }}
     >
       {children}

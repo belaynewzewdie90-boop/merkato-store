@@ -1,6 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "../context/AdminContext";
+import { createOrder } from "../api/api";
+
+const saveOrderToLocalStorage = (order, orderId) => {
+  try {
+    const existing = JSON.parse(localStorage.getItem("merkato_orders") || "[]");
+    const currentUser = (() => { try { return JSON.parse(localStorage.getItem("merkato_current_user")); } catch { return null; } })();
+    const newEntry = {
+      ...order,
+      id: orderId,
+      backendId: orderId,
+      userEmail: currentUser?.email || null,
+      status: "Placed",
+      paidAt: null,
+      createdAt: new Date().toISOString(),
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    };
+    const exists = existing.some((o) => o.id === orderId || o.backendId === orderId);
+    if (!exists) {
+      localStorage.setItem("merkato_orders", JSON.stringify([newEntry, ...existing]));
+    }
+  } catch (err) {
+    console.error("Failed to save order to localStorage backup:", err);
+  }
+};
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -58,7 +82,7 @@ export default function Checkout() {
     setLoading(true);
 
     // Simulate Payment Processing Gateway
-    setTimeout(() => {
+    setTimeout(async () => {
       const newOrder = {
         customerName: formData.fullName,
         phone: formData.phone,
@@ -72,10 +96,23 @@ export default function Checkout() {
           formData.paymentMethod === "telebirr"
             ? formData.walletNumber
             : formData.accountNumber,
+        paymentStatus: "Received",
+        amountPaid: parseFloat(formData.enteredCost),
       };
 
-      const id = addOrder(newOrder);
-      setGeneratedId(id);
+      try {
+        const backendOrder = await createOrder(newOrder);
+        const backendId = backendOrder._id || backendOrder.id;
+        addOrder(newOrder, backendId);
+        setGeneratedId(backendId);
+        // Backup: directly save to localStorage
+        saveOrderToLocalStorage(newOrder, backendId);
+      } catch (err) {
+        console.error("Failed to save order to backend:", err);
+        const localId = addOrder(newOrder);
+        setGeneratedId(localId);
+        saveOrderToLocalStorage(newOrder, localId);
+      }
       setLoading(false);
       setIsSuccess(true);
       localStorage.removeItem("merkato_cart");
@@ -111,7 +148,7 @@ export default function Checkout() {
         </div>
 
         <button
-          onClick={() => navigate(`/tracking/${generatedId}`)}
+          onClick={() => navigate(`/order/${generatedId}`)}
           className="w-full bg-orange-500 text-white font-bold py-3 rounded hover:bg-orange-600 transition-all"
         >
           View Tracking Order Roadmap →

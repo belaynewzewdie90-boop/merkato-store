@@ -15,7 +15,7 @@ import {
   FiClock,
 } from "react-icons/fi";
 import { useAdmin } from "../context/AdminContext";
-import { fetchProducts as fetchProductsApi, createProductApi, updateProductApi, deleteProductApi, fetchOrders as fetchOrdersApi, updateOrderStatus as updateOrderStatusApi, deleteOrderApi } from "../api/api";
+import { fetchProducts as fetchProductsApi, createProductApi, updateProductApi, deleteProductApi, fetchOrders as fetchOrdersApi, updateOrderStatus as updateOrderStatusApi, updateOrderPayment as updateOrderPaymentApi, deleteOrderApi } from "../api/api";
 
 const EMPTY_FORM = {
   name: "",
@@ -46,6 +46,7 @@ export default function Admin() {
     refreshOrders,
     recordPayment,
     updatePaymentStatus,
+    mergeApiOrders,
   } = useAdmin();
 
   const [showForm, setShowForm] = useState(false);
@@ -53,6 +54,12 @@ export default function Admin() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [authError, setAuthError] = useState(false);
+
+  // Force refresh: re-read orders from localStorage into React state
+  const forceRefresh = () => {
+    refreshOrders();
+  };
 
   useEffect(() => {
     const syncProducts = async () => {
@@ -62,11 +69,45 @@ export default function Admin() {
           const mapped = data.map((p) => ({ ...p, id: p._id || p.id }));
           localStorage.setItem("merkato_products", JSON.stringify(mapped));
         }
-      } catch {}
+      } catch (err) {
+        console.error("Failed to sync products from API:", err);
+      }
+    };
+
+    // Initial sync: immediately load orders from localStorage, then fetch API orders as supplement
+    refreshOrders();
+    const syncOrders = async () => {
+      try {
+        const data = await fetchOrdersApi();
+        mergeApiOrders(data);
+      } catch (err) {
+        console.error("Failed to sync orders from API:", err);
+      }
     };
     syncProducts();
-    const interval = setInterval(refreshOrders, 3000);
-    return () => clearInterval(interval);
+    syncOrders();
+
+    // Polling: merge API orders with current React state
+    let stopped = false;
+    const poll = () => {
+      refreshOrders();
+      fetchOrdersApi()
+        .then((data) => {
+          if (!stopped) mergeApiOrders(data);
+        })
+        .catch((err) => {
+          if (err.status === 404 && err.message === "User matching this token no longer exists") {
+            setAuthError(true);
+            stopped = true;
+            clearInterval(interval);
+            return;
+          }
+          console.error("Failed to poll orders:", err);
+        });
+    };
+    const interval = setInterval(poll, 3000);
+
+    return () => { stopped = true; clearInterval(interval); };
   }, []);
 
   const stats = useMemo(() => {
@@ -129,7 +170,7 @@ export default function Admin() {
     };
     if (editingId) {
       updateProduct(editingId, payload);
-      try { await updateProductApi(editingId, payload); } catch {}
+      try { await updateProductApi(editingId, payload); } catch (err) { console.error("Failed to update product on backend:", err); }
     } else {
       try {
         const created = await createProductApi(payload);
@@ -138,7 +179,8 @@ export default function Admin() {
         } else {
           addProduct(payload);
         }
-      } catch {
+      } catch (err) {
+        console.error("Failed to create product on backend:", err);
         addProduct(payload);
       }
     }
@@ -148,7 +190,7 @@ export default function Admin() {
   const handleDelete = async (id) => {
     if (confirm("Delete this product permanently?")) {
       deleteProduct(id);
-      try { await deleteProductApi(id); } catch {}
+      try { await deleteProductApi(id); } catch (err) { console.error("Failed to delete product on backend:", err); }
     }
   };
 
@@ -156,6 +198,16 @@ export default function Admin() {
   if (isOrders) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {authError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-sm">
+            <p className="font-bold text-red-700">Session expired or user not found</p>
+            <p className="text-red-600 mt-1">
+              Your login session is no longer valid.{" "}
+              <a href="/auth" className="underline font-bold">Log in again</a>{" "}
+              to reconnect to the backend.
+            </p>
+          </div>
+        )}
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <span className="text-orange-500 font-bold tracking-wider text-xs uppercase bg-orange-50 px-3 py-1 rounded-full">
@@ -168,16 +220,27 @@ export default function Admin() {
               View and manage customer orders.
             </p>
           </div>
-          {orders.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="font-bold text-gray-900">{orders.length}</span> order{orders.length !== 1 ? "s" : ""}
+          </div>
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                if (confirm("Clear all order history?")) clearOrders();
-              }}
-              className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl transition-all text-sm inline-flex items-center gap-2 cursor-pointer"
+              onClick={forceRefresh}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-xl transition-all text-sm inline-flex items-center gap-2 cursor-pointer"
             >
-              <FiTrash2 /> Clear All
+              <FiClock /> Refresh
             </button>
-          )}
+            {orders.length > 0 && (
+              <button
+                onClick={() => {
+                  if (confirm("Clear all order history?")) clearOrders();
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl transition-all text-sm inline-flex items-center gap-2 cursor-pointer"
+              >
+                <FiTrash2 /> Clear All
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
@@ -246,7 +309,10 @@ export default function Admin() {
                         )}
                         {o.paymentStatus === "Received" && (
                           <button
-                            onClick={() => updatePaymentStatus(o.id, "Verified")}
+                            onClick={async () => {
+                              updatePaymentStatus(o.id, "Verified");
+                              try { await updateOrderPaymentApi(o.id, { paymentStatus: "Verified" }); } catch (err) { console.error("Failed to verify payment:", err); }
+                            }}
                             className="text-[9px] font-bold bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 rounded mt-1 cursor-pointer"
                           >
                             Verify Payment
@@ -272,7 +338,7 @@ export default function Admin() {
                             onChange={async (e) => {
                               if (e.target.value) {
                                 updateOrderStatus(o.id, e.target.value);
-                                try { await updateOrderStatusApi(o.id, e.target.value); } catch {}
+                                try { await updateOrderStatusApi(o.id, e.target.value); } catch (err) { console.error("Failed to update order status:", err); }
                               }
                               e.target.value = "";
                             }}
@@ -293,7 +359,7 @@ export default function Admin() {
                           onClick={async () => {
                             if (confirm("Delete this order?")) {
                               deleteOrder(o.id);
-                              try { await deleteOrderApi(o.id); } catch {}
+                              try { await deleteOrderApi(o.id); } catch (err) { console.error("Failed to delete order:", err); }
                             }
                           }}
                           color="hover:bg-red-50 text-red-500"

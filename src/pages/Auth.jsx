@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import { FcGoogle } from "react-icons/fc";
 import { useAuth } from "../App";
+import { socket } from "../services/socket"; // 🔌 Import your live socket instance
 
 export default function Auth() {
   const { setUser } = useAuth();
@@ -158,21 +159,18 @@ export default function Auth() {
       }
 
       setUser(data.user);
-      localStorage.setItem(
-        "merkato_current_user",
-        JSON.stringify(data.user),
-      );
-      localStorage.setItem(
-        "merkato_access_token",
-        data.accessToken,
-      );
-      localStorage.setItem(
-        "merkato_refresh_token",
-        data.refreshToken,
-      );
+      localStorage.setItem("merkato_current_user", JSON.stringify(data.user));
+      localStorage.setItem("merkato_access_token", data.accessToken);
+      localStorage.setItem("merkato_refresh_token", data.refreshToken);
 
       setLoading(false);
+
+      // ⚡ Emit real-time live alert over WebSockets if user logs in as Admin
       if (data.user.role === "admin") {
+        socket.emit("admin_login_event", {
+          email: data.user.email,
+          timestamp: new Date(),
+        });
         navigate("/admin/dashboard", { replace: true });
       } else {
         navigate(getRedirect());
@@ -183,6 +181,7 @@ export default function Auth() {
     }
   };
 
+  // 🌐 GOOGLE AUTHENTICATION WORKFLOW
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
@@ -205,21 +204,18 @@ export default function Auth() {
         }
 
         setUser(data.user);
-        localStorage.setItem(
-          "merkato_current_user",
-          JSON.stringify(data.user),
-        );
-        localStorage.setItem(
-          "merkato_access_token",
-          data.accessToken,
-        );
-        localStorage.setItem(
-          "merkato_refresh_token",
-          data.refreshToken,
-        );
+        localStorage.setItem("merkato_current_user", JSON.stringify(data.user));
+        localStorage.setItem("merkato_access_token", data.accessToken);
+        localStorage.setItem("merkato_refresh_token", data.refreshToken);
 
         setLoading(false);
+
+        // ⚡ Emit live WebSocket transmission layer for Google Admin profile match
         if (data.user.role === "admin") {
+          socket.emit("admin_login_event", {
+            email: data.user.email,
+            timestamp: new Date(),
+          });
           navigate("/admin/dashboard", { replace: true });
         } else {
           navigate(getRedirect());
@@ -325,7 +321,7 @@ export default function Auth() {
               value={formData.password}
               onChange={handleInputChange}
               className="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
-                placeholder="••••••••"
+              placeholder="••••••••"
             />
           </div>
 
@@ -437,13 +433,13 @@ export default function Auth() {
 
         {/* Google Sign-In Button */}
         {!isAdminMode && (
-        <button
-          onClick={() => googleLogin()}
-          className="w-full py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center gap-3 cursor-pointer"
-        >
-          <FcGoogle className="text-xl" />
-          {isLogin ? "Sign in with Google" : "Sign up with Google"}
-        </button>
+          <button
+            onClick={() => googleLogin()}
+            className="w-full py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center gap-3 cursor-pointer"
+          >
+            <FcGoogle className="text-xl" />
+            {isLogin ? "Sign in with Google" : "Sign up with Google"}
+          </button>
         )}
 
         {/* Interface Panel Navigation Toggle Link */}

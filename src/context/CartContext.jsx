@@ -1,9 +1,40 @@
-import { createContext, useState, useContext } from "react";
+import { createContext, useState, useContext, useEffect } from "react";
 
 const CartContext = createContext();
 
+function getCurrentUser() {
+  try {
+    return JSON.parse(localStorage.getItem("merkato_current_user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function getCartKey(user) {
+  return user?.email ? `merkato_cart_${user.email}` : null;
+}
+
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([]);
+  const currentUser = getCurrentUser();
+
+  const [cart, setCart] = useState(() => {
+    const key = getCartKey(currentUser);
+    if (key) {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try { return JSON.parse(saved); } catch {}
+      }
+    }
+    return [];
+  });
+
+  // persist to localStorage whenever cart changes
+  useEffect(() => {
+    const key = getCartKey(getCurrentUser());
+    if (key) {
+      localStorage.setItem(key, JSON.stringify(cart));
+    }
+  }, [cart]);
 
   const addToCart = (product) => {
     setCart((prev) => {

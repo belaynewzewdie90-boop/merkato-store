@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { FiLogOut, FiHome, FiGrid, FiInfo, FiSettings, FiBookOpen, FiMail, FiShoppingCart } from "react-icons/fi";
+import { FiLogOut, FiHome, FiGrid, FiInfo, FiSettings, FiBookOpen, FiMail, FiShoppingCart, FiTruck } from "react-icons/fi";
 import { useAuth } from "../App";
 import { useCart } from "../context/CartContext";
 
@@ -30,42 +30,42 @@ export default function Header() {
             className="text-xs md:text-sm font-semibold text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1.5 whitespace-nowrap px-2 py-1"
           >
             <FiHome className="shrink-0" />
-            <span className="hidden md:inline">Home</span>
+            <span>Home</span>
           </Link>
           <Link
             to="/products"
             className="text-xs md:text-sm font-semibold text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1.5 whitespace-nowrap px-2 py-1"
           >
             <FiGrid className="shrink-0" />
-            <span className="hidden md:inline">Products</span>
+            <span>Products</span>
           </Link>
           <Link
             to="/about"
             className="text-xs md:text-sm font-semibold text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1.5 whitespace-nowrap px-2 py-1"
           >
             <FiInfo className="shrink-0" />
-            <span className="hidden md:inline">About</span>
+            <span>About</span>
           </Link>
           <Link
             to="/services"
             className="text-xs md:text-sm font-semibold text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1.5 whitespace-nowrap px-2 py-1"
           >
             <FiSettings className="shrink-0" />
-            <span className="hidden md:inline">Services</span>
+            <span>Services</span>
           </Link>
           <Link
             to="/blog"
             className="text-xs md:text-sm font-semibold text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1.5 whitespace-nowrap px-2 py-1"
           >
             <FiBookOpen className="shrink-0" />
-            <span className="hidden md:inline">Blog</span>
+            <span>Blog</span>
           </Link>
           <Link
             to="/contact"
             className="text-xs md:text-sm font-semibold text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1.5 whitespace-nowrap px-2 py-1"
           >
             <FiMail className="shrink-0" />
-            <span className="hidden md:inline">Contact</span>
+            <span>Contact</span>
           </Link>
         </nav>
 
@@ -82,9 +82,19 @@ export default function Header() {
             )}
           </Link>
 
+          {user && (
+            <Link
+              to="/tracking"
+              className="text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs md:text-sm font-semibold"
+            >
+              <FiTruck className="text-base md:text-lg" />
+              <span className="hidden sm:inline">My Orders</span>
+            </Link>
+          )}
+
           {user ? (
             <>
-              <span className="text-xs md:text-sm text-gray-300 hidden sm:inline">
+              <span className="text-xs md:text-sm text-gray-300">
                 👋 {user.firstName || "User"}
               </span>
 
@@ -93,7 +103,7 @@ export default function Header() {
                 className="text-xs font-bold text-red-400 bg-red-400/10 border border-red-400/30 px-2 md:px-3 py-1.5 rounded-lg hover:bg-red-400/20 transition-all cursor-pointer inline-flex items-center gap-1.5"
               >
                 <FiLogOut />
-                <span className="hidden md:inline">Logout</span>
+                <span>Logout</span>
               </button>
             </>
           ) : (

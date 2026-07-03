@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAdmin } from "../context/AdminContext";
+import { createOrder, updateOrderPayment } from "../api/api";
 import { FiTrash2, FiCheckCircle, FiTruck, FiArrowLeft } from "react-icons/fi";
 
 const PAYMENT_METHODS = [
@@ -28,6 +29,7 @@ export default function Cart() {
   });
   const [ordered, setOrdered] = useState(false);
   const [orderId, setOrderId] = useState(null);
+  const [orderError, setOrderError] = useState("");
 
   // payment step
   const [showPayment, setShowPayment] = useState(false);
@@ -48,7 +50,30 @@ export default function Cart() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleOrderSubmit = (e) => {
+  const saveOrderToLocalStorage = (order, orderId) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem("merkato_orders") || "[]");
+      const currentUser = (() => { try { return JSON.parse(localStorage.getItem("merkato_current_user")); } catch { return null; } })();
+      const newEntry = {
+        ...order,
+        id: orderId,
+        backendId: orderId,
+        userEmail: currentUser?.email || null,
+        status: "Placed",
+        paidAt: null,
+        createdAt: new Date().toISOString(),
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      };
+      const exists = existing.some((o) => o.id === orderId || o.backendId === orderId);
+      if (!exists) {
+        localStorage.setItem("merkato_orders", JSON.stringify([newEntry, ...existing]));
+      }
+    } catch (err) {
+      console.error("Failed to save order to localStorage backup:", err);
+    }
+  };
+
+  const handleOrderSubmit = async (e) => {
     e.preventDefault();
     const newOrder = {
       customerName: formData.fullName,
@@ -61,11 +86,18 @@ export default function Cart() {
       amountPaid: null,
       paymentStatus: "Pending",
     };
-    let id = addOrder(newOrder);
+    let id;
     try {
       const backendOrder = await createOrder(newOrder);
-      id = backendOrder._id || id;
-    } catch {}
+      id = backendOrder._id || backendOrder.id || Date.now();
+      addOrder(newOrder, id);
+    } catch (err) {
+      console.error("Failed to save order to backend:", err);
+      setOrderError("Order saved locally but failed to sync to server. Check your connection or login again.");
+      id = addOrder(newOrder);
+    }
+    // Backup: directly save to localStorage in case React context useEffect hasn't flushed
+    saveOrderToLocalStorage(newOrder, id);
     setOrderId(id);
     setPaymentForm((prev) => ({ ...prev, amountPaid: totalCost }));
     clearCart();
@@ -73,7 +105,7 @@ export default function Cart() {
     setShowPayment(true);
   };
 
-  const handlePaymentSubmit = (e) => {
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     if (paymentForm.paymentMethod === "telebirr" && !paymentForm.walletNumber) {
       alert("Please enter your Telebirr phone number.");
@@ -97,6 +129,16 @@ export default function Cart() {
       detailsMap[paymentForm.paymentMethod],
       paymentForm.amountPaid,
     );
+    try {
+      await updateOrderPayment(orderId, {
+        paymentStatus: "Received",
+        paymentMethod: labels[paymentForm.paymentMethod],
+        paymentDetails: detailsMap[paymentForm.paymentMethod],
+        amountPaid: Number(paymentForm.amountPaid),
+      });
+    } catch (err) {
+      console.error("Failed to sync payment to backend:", err);
+    }
     setOrdered(true);
     setShowPayment(false);
   };
@@ -137,6 +179,11 @@ export default function Cart() {
             </p>
           </div>
 
+          {orderError && (
+            <div className="p-3 mb-4 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-xl">
+              {orderError}
+            </div>
+          )}
           <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
             <p className="text-sm text-gray-700">
               Total invoice:{" "}

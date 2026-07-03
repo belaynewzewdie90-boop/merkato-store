@@ -1,15 +1,23 @@
 const BASE = "http://localhost:5000/api/v1";
 
 function getToken() {
-  const stored = localStorage.getItem("merkato_token");
-  return stored || null;
+  const accessToken = localStorage.getItem("merkato_access_token");
+  if (accessToken) return accessToken;
+  const legacyToken = localStorage.getItem("merkato_token");
+  if (legacyToken) {
+    // migrate legacy token to new key
+    localStorage.setItem("merkato_access_token", legacyToken);
+    localStorage.removeItem("merkato_token");
+    return legacyToken;
+  }
+  return null;
 }
 
 function setToken(token) {
   if (token) {
-    localStorage.setItem("merkato_token", token);
+    localStorage.setItem("merkato_access_token", token);
   } else {
-    localStorage.removeItem("merkato_token");
+    localStorage.removeItem("merkato_access_token");
   }
 }
 
@@ -22,7 +30,13 @@ async function request(endpoint, options = {}) {
   const res = await fetch(`${BASE}${endpoint}`, { ...options, headers });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.message || `Request failed (${res.status})`);
+    const err = new Error(data.message || `Request failed (${res.status})`);
+    err.status = res.status;
+    if (res.status === 404 && data.message === "User matching this token no longer exists") {
+      localStorage.removeItem("merkato_access_token");
+      localStorage.removeItem("merkato_current_user");
+    }
+    throw err;
   }
   return data;
 }
@@ -106,6 +120,19 @@ export async function updateOrderStatus(id, status) {
   const res = await request(`/orders/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+  });
+  return res.data;
+}
+
+export async function cancelOrderApi(id) {
+  const res = await request(`/orders/${id}/cancel`, { method: "PATCH" });
+  return res.data;
+}
+
+export async function updateOrderPayment(id, paymentData) {
+  const res = await request(`/orders/${id}/payment`, {
+    method: "PATCH",
+    body: JSON.stringify(paymentData),
   });
   return res.data;
 }
