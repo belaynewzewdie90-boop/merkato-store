@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 
+const API = import.meta.env.VITE_API_URL || '';
+
 const ProductList = () => {
   const categories = [
     "Electronics",
@@ -17,7 +19,7 @@ const ProductList = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/v1/products");
+        const res = await fetch(`${API}/api/v1/products`);
         const data = await res.json();
         setProducts(data);
       } catch (err) {

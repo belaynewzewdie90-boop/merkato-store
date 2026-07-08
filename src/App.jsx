@@ -17,6 +17,8 @@ import Tracking from "./pages/Tracking";
 import OrderDetails from "./pages/OrderDetails";
 import Address from "./pages/Address";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";

@@ -9,16 +9,20 @@ import "./index.css";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+const root = (
   <React.StrictMode>
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <BrowserRouter>
-        <AdminProvider>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </AdminProvider>
-      </BrowserRouter>
-    </GoogleOAuthProvider>
-  </React.StrictMode>,
+    <BrowserRouter>
+      <AdminProvider>
+        <CartProvider>
+          <App />
+        </CartProvider>
+      </AdminProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  googleClientId
+    ? <GoogleOAuthProvider clientId={googleClientId}>{root}</GoogleOAuthProvider>
+    : root
 );

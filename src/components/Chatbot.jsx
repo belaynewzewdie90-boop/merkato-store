@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
+const API = import.meta.env.VITE_API_URL || '';
+
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -15,7 +17,7 @@ export default function Chatbot() {
     const fetchSavedLogs = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/v1/chat/history/${mockupUser}`,
+          `${API}/api/v1/chat/history/${mockupUser}`,
         );
         if (response.data.messages && response.data.messages.length > 0) {
           setMessages(response.data.messages);
@@ -51,7 +53,7 @@ export default function Chatbot() {
 
     try {
       const serverResponse = await axios.post(
-        "http://localhost:5000/api/v1/chat",
+        `${API}/api/v1/chat`,
         {
           message: currentPrompt,
           userId: mockupUser,
@@ -64,11 +66,12 @@ export default function Chatbot() {
       ]);
     } catch (err) {
       console.error("Chat error:", err);
+      const reply = err.response?.data?.reply || "Connection pipeline interface failed. Please try again.";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Connection pipeline interface failed. Please try again.",
+          content: reply,
         },
       ]);
     } finally {

@@ -5,6 +5,8 @@ import { FcGoogle } from "react-icons/fc";
 import { useAuth } from "../App";
 import { socket } from "../services/socket"; // 🔌 Import your live socket instance
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 export default function Auth() {
   const { setUser } = useAuth();
   const navigate = useNavigate();
@@ -37,28 +39,7 @@ export default function Auth() {
     }
   };
 
-  // 🔐 BACKUP SEEDER: Double check that the admin exists whenever this page mounts
   useEffect(() => {
-    const existingUsers =
-      JSON.parse(localStorage.getItem("merkato_users_db")) || [];
-    const adminExists = existingUsers.some(
-      (user) => user.email.toLowerCase() === "admin@merkato.com",
-    );
-
-    if (!adminExists) {
-      const defaultAdmin = {
-        id: "USR-ADMIN-MASTER",
-        name: "Store Manager",
-        email: "admin@merkato.com",
-        password: "admin123",
-        role: "admin",
-      };
-      localStorage.setItem(
-        "merkato_users_db",
-        JSON.stringify([...existingUsers, defaultAdmin]),
-      );
-    }
-
     const sessionActive = localStorage.getItem("merkato_current_user");
     if (sessionActive) {
       const user = JSON.parse(sessionActive);
@@ -180,55 +161,6 @@ export default function Auth() {
       setLoading(false);
     }
   };
-
-  // 🌐 GOOGLE AUTHENTICATION WORKFLOW
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        setLoading(true);
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/v1/auth/google`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ accessToken: tokenResponse.access_token }),
-          },
-        );
-
-        const data = await res.json();
-
-        if (!data.success) {
-          setError(data.message);
-          setLoading(false);
-          return;
-        }
-
-        setUser(data.user);
-        localStorage.setItem("merkato_current_user", JSON.stringify(data.user));
-        localStorage.setItem("merkato_access_token", data.accessToken);
-        localStorage.setItem("merkato_refresh_token", data.refreshToken);
-
-        setLoading(false);
-
-        // ⚡ Emit live WebSocket transmission layer for Google Admin profile match
-        if (data.user.role === "admin") {
-          socket.emit("admin_login_event", {
-            email: data.user.email,
-            timestamp: new Date(),
-          });
-          navigate("/admin/dashboard", { replace: true });
-        } else {
-          navigate(getRedirect());
-        }
-      } catch {
-        setError("Google sign-in failed. Please try again.");
-        setLoading(false);
-      }
-    },
-    onError: () => {
-      setError("Google sign-in failed. Please try again.");
-    },
-  });
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[85vh] px-4 py-12 bg-gradient-to-b from-white to-gray-50">
@@ -417,29 +349,28 @@ export default function Auth() {
           </button>
         </form>
 
-        {/* Divider */}
-        {!isAdminMode && (
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+        {!isAdminMode && googleClientId && (
+          <>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-3 text-gray-400 font-semibold">
+                  Or continue with
+                </span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-gray-400 font-semibold">
-                Or continue with
-              </span>
-            </div>
-          </div>
-        )}
 
-        {/* Google Sign-In Button */}
-        {!isAdminMode && (
-          <button
-            onClick={() => googleLogin()}
-            className="w-full py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center gap-3 cursor-pointer"
-          >
-            <FcGoogle className="text-xl" />
-            {isLogin ? "Sign in with Google" : "Sign up with Google"}
-          </button>
+            <GoogleButton
+              isLogin={isLogin}
+              setError={setError}
+              setLoading={setLoading}
+              setUser={setUser}
+              navigate={navigate}
+              getRedirect={getRedirect}
+            />
+          </>
         )}
 
         {/* Interface Panel Navigation Toggle Link */}
@@ -467,5 +398,66 @@ export default function Auth() {
         </div>
       </div>
     </div>
+  );
+}
+
+function GoogleButton({ isLogin, setError, setLoading, setUser, navigate, getRedirect }) {
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/v1/auth/google`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: tokenResponse.access_token }),
+          },
+        );
+
+        const data = await res.json();
+
+        if (!data.success) {
+          setError(data.message);
+          setLoading(false);
+          return;
+        }
+
+        setUser(data.user);
+        localStorage.setItem("merkato_current_user", JSON.stringify(data.user));
+        localStorage.setItem("merkato_access_token", data.accessToken);
+        localStorage.setItem("merkato_refresh_token", data.refreshToken);
+
+        setLoading(false);
+
+        if (data.user.role === "admin") {
+          socket.emit("admin_login_event", {
+            email: data.user.email,
+            timestamp: new Date(),
+          });
+          navigate("/admin/dashboard", { replace: true });
+        } else {
+          navigate(getRedirect());
+        }
+      } catch (err) {
+        console.error("Google backend error:", err);
+        setError(err.message || "Google sign-in failed. Please try again.");
+        setLoading(false);
+      }
+    },
+    onError: (errorResponse) => {
+      console.error("Google OAuth error:", errorResponse);
+      setError(errorResponse?.error || "Google sign-in failed. Please try again.");
+    },
+  });
+
+  return (
+    <button
+      onClick={() => googleLogin()}
+      className="w-full py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center gap-3 cursor-pointer"
+    >
+      <FcGoogle className="text-xl" />
+      {isLogin ? "Sign in with Google" : "Sign up with Google"}
+    </button>
   );
 }

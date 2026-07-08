@@ -1,4 +1,4 @@
-const BASE = "http://localhost:5000/api/v1";
+const BASE = (import.meta.env.VITE_API_URL || '') + '/api/v1';
 
 function getToken() {
   const accessToken = localStorage.getItem("merkato_access_token");
@@ -54,19 +54,41 @@ export async function fetchProduct(id) {
 }
 
 export async function createProductApi(product) {
-  const res = await request("/products", {
+  const token = getToken();
+  const isFormData = product instanceof FormData;
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/products`, {
     method: "POST",
-    body: JSON.stringify(product),
+    headers: isFormData ? headers : { ...headers, "Content-Type": "application/json" },
+    body: isFormData ? product : JSON.stringify(product),
   });
-  return res.data;
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.message || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  return data.data;
 }
 
-export async function updateProductApi(id, updates) {
-  const res = await request(`/products/${id}`, {
+export async function updateProductApi(id, product) {
+  const token = getToken();
+  const isFormData = product instanceof FormData;
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/products/${id}`, {
     method: "PUT",
-    body: JSON.stringify(updates),
+    headers: isFormData ? headers : { ...headers, "Content-Type": "application/json" },
+    body: isFormData ? product : JSON.stringify(product),
   });
-  return res.data;
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.message || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  return data.data;
 }
 
 export async function deleteProductApi(id) {

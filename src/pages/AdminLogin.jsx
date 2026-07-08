@@ -100,7 +100,7 @@ export default function AdminLogin() {
             </button>
 
             <p className="text-[11px] text-center text-gray-400 pt-2">
-              Default credentials: <span className="font-bold text-gray-600">admin</span> / <span className="font-bold text-gray-600">admin123</span>
+              Default credentials: <span className="font-bold text-gray-600">{import.meta.env.VITE_ADMIN_USERNAME || "admin"}</span> / <span className="font-bold text-gray-600">{import.meta.env.VITE_ADMIN_PASSWORD || "admin123"}</span>
             </p>
           </form>
         </div>

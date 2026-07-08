@@ -21,9 +21,10 @@ const EMPTY_FORM = {
   name: "",
   price: "",
   category: "",
-  image: "",
+  image: null,
   description: "",
   stock: 0,
+  imageFile: null,
 };
 
 export default function Admin() {
@@ -148,6 +149,7 @@ export default function Admin() {
       image: product.image,
       description: product.description,
       stock: product.stock,
+      imageFile: null,
     });
     setShowForm(true);
   };
@@ -160,14 +162,26 @@ export default function Admin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = {
-      name: formData.name,
-      price: Number(formData.price) || 0,
-      category: formData.category,
-      image: formData.image,
-      description: formData.description,
-      stock: Number(formData.stock) || 0,
-    };
+    const hasFile = formData.imageFile instanceof File;
+    let payload;
+    if (hasFile) {
+      payload = new FormData();
+      payload.append("name", formData.name);
+      payload.append("price", String(Number(formData.price) || 0));
+      payload.append("category", formData.category);
+      payload.append("description", formData.description);
+      payload.append("stock", String(Number(formData.stock) || 0));
+      payload.append("image", formData.imageFile);
+    } else {
+      payload = {
+        name: formData.name,
+        price: Number(formData.price) || 0,
+        category: formData.category,
+        image: formData.image,
+        description: formData.description,
+        stock: Number(formData.stock) || 0,
+      };
+    }
     if (editingId) {
       updateProduct(editingId, payload);
       try { await updateProductApi(editingId, payload); } catch (err) { console.error("Failed to update product on backend:", err); }
@@ -177,11 +191,11 @@ export default function Admin() {
         if (created) {
           addProduct(created);
         } else {
-          addProduct(payload);
+          addProduct(hasFile ? Object.fromEntries(payload.entries()) : payload);
         }
       } catch (err) {
         console.error("Failed to create product on backend:", err);
-        addProduct(payload);
+        addProduct(hasFile ? Object.fromEntries(payload.entries()) : payload);
       }
     }
     closeForm();
@@ -614,12 +628,27 @@ export default function Admin() {
                 value={formData.category}
                 onChange={(v) => setFormData({ ...formData, category: v })}
               />
-              <Field
-                label="Image URL"
-                value={formData.image}
-                onChange={(v) => setFormData({ ...formData, image: v })}
-                placeholder="https://..."
-              />
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Product Image
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      imageFile: e.target.files[0] || null,
+                    })
+                  }
+                  className="mt-1 w-full border border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-orange-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-gray-900 file:text-white hover:file:bg-orange-600"
+                />
+                {editingId && formData.image && !formData.imageFile && (
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Current image: {formData.image}
+                  </p>
+                )}
+              </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Description

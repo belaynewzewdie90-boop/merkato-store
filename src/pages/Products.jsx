@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { FiSearch, FiX } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
 import { fetchProducts as fetchProductsApi } from "../api/api";
+import { socket } from "../services/socket";
 
 const SEED_PRODUCTS = [
   {
@@ -96,6 +97,40 @@ export default function Products() {
       setProducts(SEED_PRODUCTS);
     };
     load().finally(() => setLoading(false));
+
+    socket.connect();
+    const onNewProduct = (product) => {
+      setProducts((prev) => {
+        if (prev.some((p) => (p._id || p.id) === (product._id || product.id))) return prev;
+        const updated = [product, ...prev];
+        localStorage.setItem("merkato_products", JSON.stringify(updated));
+        return updated;
+      });
+    };
+    const onUpdateProduct = (product) => {
+      setProducts((prev) => {
+        const updated = prev.map((p) =>
+          (p._id || p.id) === (product._id || product.id) ? product : p,
+        );
+        localStorage.setItem("merkato_products", JSON.stringify(updated));
+        return updated;
+      });
+    };
+    const onDeleteProduct = (id) => {
+      setProducts((prev) => {
+        const updated = prev.filter((p) => (p._id || p.id) !== id);
+        localStorage.setItem("merkato_products", JSON.stringify(updated));
+        return updated;
+      });
+    };
+    socket.on("new_product", onNewProduct);
+    socket.on("update_product", onUpdateProduct);
+    socket.on("delete_product", onDeleteProduct);
+    return () => {
+      socket.off("new_product", onNewProduct);
+      socket.off("update_product", onUpdateProduct);
+      socket.off("delete_product", onDeleteProduct);
+    };
   }, []);
 
   const categories = useMemo(() => {
@@ -197,7 +232,7 @@ export default function Products() {
             const inStock = (product.stock ?? 0) > 0;
             return (
               <div
-                key={product.id}
+                key={product._id || product.id}
                 className="group border border-gray-100 rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
