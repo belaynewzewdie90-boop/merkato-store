@@ -151,3 +151,19 @@ export async function fetchAuditLogs() {
   const res = await request("/admin/audit-logs");
   return res.data;
 }
+
+export async function forgotPassword(email) {
+  const res = await request("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return res;
+}
+
+export async function resetPassword(token, password) {
+  const res = await request(`/auth/reset-password/${token}`, {
+    method: "PUT",
+    body: JSON.stringify({ password }),
+  });
+  return res;
+}

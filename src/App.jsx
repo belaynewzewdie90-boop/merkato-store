@@ -18,6 +18,8 @@ import OrderDetails from "./pages/OrderDetails";
 import Address from "./pages/Address";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Chatbot from "./components/Chatbot"; 
 
 const AuthContext = createContext(null);
@@ -82,6 +84,8 @@ function App() {
             <Route path="/address" element={<Address />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* 🔒 Protected Administrative Workspace Terminal */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
