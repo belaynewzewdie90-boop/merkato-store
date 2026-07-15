@@ -22,8 +22,13 @@ export default function Cart() {
     }
   }, [navigate]);
 
+  const currentUser = (() => { try { return JSON.parse(localStorage.getItem("merkato_current_user")); } catch { return null; } })();
+  const initialFullName = currentUser
+    ? `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim()
+    : "";
+
   const [formData, setFormData] = useState({
-    fullName: "",
+    fullName: initialFullName,
     phone: "",
     location: "",
   });
@@ -53,7 +58,6 @@ export default function Cart() {
   const saveOrderToLocalStorage = (order, orderId) => {
     try {
       const existing = JSON.parse(localStorage.getItem("merkato_orders") || "[]");
-      const currentUser = (() => { try { return JSON.parse(localStorage.getItem("merkato_current_user")); } catch { return null; } })();
       const newEntry = {
         ...order,
         id: orderId,

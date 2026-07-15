@@ -64,7 +64,7 @@ function App() {
           🛡️ UI Layout Isolation Rule:
           Hides the standard public header completely if an admin is authenticated.
         */}
-        {(!user || user.role !== "admin") && <Header />}
+        <Header />
 
         <div className="flex-1">
           <Routes>
