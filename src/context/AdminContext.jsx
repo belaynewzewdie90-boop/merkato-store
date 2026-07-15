@@ -190,7 +190,13 @@ export function AdminProvider({ children }) {
 
   // customer clicks "Order Arrived"
   const markDelivered = (id) => {
-    updateOrderStatus(id, "Delivered");
+    setOrders((prev) => {
+      const updated = prev.map((o) =>
+        o.id == id || o.backendId == id ? { ...o, status: "Delivered" } : o
+      );
+      localStorage.setItem("merkato_orders", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // user records payment after placing order
@@ -226,13 +232,6 @@ export function AdminProvider({ children }) {
     setOrders([]);
   };
 
-  /**
-   * Merges API orders with the current React state.
-   * Uses functional setState to avoid race conditions.
-   * When a matching local order exists, local fields take precedence
-   * so that admin actions (status update, payment verify, delete) are never
-   * overwritten by stale API data on the next poll cycle.
-   */
   const mergeApiOrders = (apiOrders) => {
     if (!apiOrders || apiOrders.length === 0) return;
     const mapped = apiOrders.map((o) => ({ ...o, id: o._id || o.id }));
@@ -240,7 +239,11 @@ export function AdminProvider({ children }) {
       const merged = mapped.map((apiOrder) => {
         const match = prev.find((lo) => lo.id === apiOrder.id || lo._id === apiOrder.id);
         if (match) {
-          return { ...apiOrder, ...match };
+          return {
+            ...apiOrder,
+            userEmail: match.userEmail || apiOrder.userEmail,
+            date: match.date || apiOrder.date,
+          };
         }
         return apiOrder;
       });

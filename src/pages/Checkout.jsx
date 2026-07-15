@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "../context/AdminContext";
 import { createOrder } from "../api/api";
+import axios from "axios";
+
+const API = import.meta.env.VITE_API_URL || "";
 
 const saveOrderToLocalStorage = (order, orderId) => {
   try {
@@ -48,7 +51,7 @@ export default function Checkout() {
     fullName,
     phone: "",
     address: "",
-    paymentMethod: "telebirr",
+    paymentMethod: "chapa",
     enteredCost: "",
     accountNumber: "",
     walletNumber: "",
@@ -58,7 +61,7 @@ export default function Checkout() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (
@@ -81,7 +84,27 @@ export default function Checkout() {
 
     setLoading(true);
 
-    // Simulate Payment Processing Gateway
+    if (formData.paymentMethod === "chapa") {
+      try {
+        const res = await axios.post(`${API}/api/v1/payments/initialize`, {
+          amount: parseFloat(formData.enteredCost),
+          email: currentUser?.email || "customer@example.com",
+          first_name: currentUser?.firstName || formData.fullName.split(" ")[0],
+          last_name: currentUser?.lastName || formData.fullName.split(" ").slice(1).join(" "),
+          phone_number: formData.phone,
+        });
+        if (res.data.success && res.data.checkoutUrl) {
+          window.location.href = res.data.checkoutUrl;
+          return;
+        }
+      } catch (err) {
+        console.error("Chapa init error:", err);
+        alert("Failed to start Chapa payment. Please try again.");
+        setLoading(false);
+        return;
+      }
+    }
+
     setTimeout(async () => {
       const newOrder = {
         customerName: formData.fullName,
@@ -126,10 +149,10 @@ export default function Checkout() {
           ✓
         </div>
         <h2 className="text-2xl font-bold text-gray-950">
-          Payment Successful!
+          Order Complete!
         </h2>
         <p className="text-gray-500 text-sm mt-1">
-          Your order has been registered and is pending admin updates.
+          Thank you, Customer. We will deliver to your address.
         </p>
 
         <div className="bg-gray-50 p-5 rounded-lg my-6 text-left border border-gray-100 space-y-2">
@@ -148,10 +171,16 @@ export default function Checkout() {
         </div>
 
         <button
-          onClick={() => navigate(`/order/${generatedId}`)}
+          onClick={() => navigate("/tracking")}
           className="w-full bg-orange-500 text-white font-bold py-3 rounded hover:bg-orange-600 transition-all"
         >
-          View Tracking Order Roadmap →
+          Go to My Orders
+        </button>
+        <button
+          onClick={() => navigate(`/order/${generatedId}`)}
+          className="w-full bg-white text-orange-500 font-bold py-3 rounded border border-orange-300 hover:bg-orange-50 transition-all mt-3"
+        >
+          View Order Details
         </button>
       </div>
     );
@@ -236,7 +265,20 @@ export default function Checkout() {
           <label className="block text-sm font-bold text-gray-900 mb-2">
             Select Payment Option
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <label
+              className={`border p-3 rounded-lg cursor-pointer text-center block ${formData.paymentMethod === "chapa" ? "border-orange-500 bg-orange-50/50 text-orange-600 font-bold" : "bg-white text-gray-700"}`}
+            >
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="chapa"
+                checked={formData.paymentMethod === "chapa"}
+                onChange={handleChange}
+                className="hidden"
+              />
+              Chapa
+            </label>
             <label
               className={`border p-3 rounded-lg cursor-pointer text-center block ${formData.paymentMethod === "telebirr" ? "border-blue-500 bg-blue-50/50 text-blue-600 font-bold" : "bg-white text-gray-700"}`}
             >

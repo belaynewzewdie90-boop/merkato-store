@@ -12,6 +12,7 @@ import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import Settings from "./pages/Settings";
 import Tracking from "./pages/Tracking";
 import OrderDetails from "./pages/OrderDetails";
@@ -24,7 +25,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Chatbot from "./components/Chatbot"; 
 
-const AuthContext = createContext(null);
+const AuthContext = createContext({ user: null, setUser: () => {} });
 export const useAuth = () => useContext(AuthContext);
 
 function App() {
@@ -79,6 +80,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/tracking" element={<Tracking />} />
             <Route path="/tracking/:orderId" element={<OrderDetails />} />

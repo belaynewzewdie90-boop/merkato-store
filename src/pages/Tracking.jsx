@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAdmin } from "../context/AdminContext";
+import { fetchOrders as fetchOrdersApi } from "../api/api";
 
 export default function Tracking() {
   const navigate = useNavigate();
-  const { orders, refreshOrders } = useAdmin();
+  const { orders, refreshOrders, mergeApiOrders } = useAdmin();
+  const [synced, setSynced] = useState(false);
 
   const currentUser = (() => {
     try { return JSON.parse(localStorage.getItem("merkato_current_user")); } catch { return null; }
@@ -17,37 +19,43 @@ export default function Tracking() {
   }, [navigate, currentUser]);
 
   useEffect(() => {
-    refreshOrders();
-
-    if (currentUser?.email) {
-      const fullName = `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim();
-      const saved = JSON.parse(localStorage.getItem("merkato_orders") || "[]");
-      let changed = false;
-      const updated = saved.map((o) => {
-        if (!o.userEmail && o.customerName && fullName && o.customerName.toLowerCase() === fullName.toLowerCase()) {
-          changed = true;
-          return { ...o, userEmail: currentUser.email };
+    const syncFromBackend = async () => {
+      try {
+        const data = await fetchOrdersApi();
+        if (data && data.length > 0) {
+          mergeApiOrders(data);
         }
-        return o;
-      });
-      if (changed) {
-        localStorage.setItem("merkato_orders", JSON.stringify(updated));
-        refreshOrders();
+      } catch (err) {
+        console.error("Failed to sync orders from backend:", err);
       }
-    }
-
-    const interval = setInterval(refreshOrders, 3000);
+      setSynced(true);
+    };
+    syncFromBackend();
+    const interval = setInterval(syncFromBackend, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  const myOrders = currentUser?.email ? orders.filter((o) => o.userEmail === currentUser.email) : [];
+  const fullName = currentUser
+    ? `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim()
+    : "";
+
+  const myOrders = orders.filter((o) => {
+    if (currentUser?.email && o.userEmail === currentUser.email) return true;
+    if (fullName && o.customerName && o.customerName.toLowerCase() === fullName.toLowerCase()) return true;
+    return false;
+  });
 
   return (
     <div className="max-w-2xl mx-auto my-10 p-6 bg-white border rounded-lg shadow-sm">
       <h2 className="text-xl font-bold text-gray-900 mb-4">
-        My Orders Tracker Registry
+        My Orders
       </h2>
-      {myOrders.length === 0 ? (
+      {!synced ? (
+        <div className="py-8 text-center">
+          <div className="w-8 h-8 border-4 border-t-orange-500 border-gray-200 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Loading your orders...</p>
+        </div>
+      ) : myOrders.length === 0 ? (
         <p className="text-gray-400 text-sm py-4 text-center">
           No orders have been submitted yet.
         </p>

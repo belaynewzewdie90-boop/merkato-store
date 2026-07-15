@@ -313,16 +313,16 @@ export default function Cart() {
         </p>
         <button
           onClick={() => {
-            markDelivered(orderId);
             setOrdered(false);
             setOrderId(null);
+            navigate("/tracking");
           }}
           className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mx-auto"
         >
-          <FiTruck /> Order Arrived
+          <FiTruck /> Go to My Orders
         </button>
         <p className="text-xs text-gray-400 mt-4">
-          Click when you receive your order
+          Click to view your orders after delivery
         </p>
       </div>
     );

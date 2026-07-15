@@ -324,8 +324,9 @@ export default function Admin() {
                         {o.paymentStatus === "Received" && (
                           <button
                             onClick={async () => {
+                              const apiId = o._id || o.backendId || o.id;
                               updatePaymentStatus(o.id, "Verified");
-                              try { await updateOrderPaymentApi(o.id, { paymentStatus: "Verified" }); } catch (err) { console.error("Failed to verify payment:", err); }
+                              try { await updateOrderPaymentApi(apiId, { paymentStatus: "Verified" }); } catch (err) { console.error("Failed to verify payment:", err); }
                             }}
                             className="text-[9px] font-bold bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 rounded mt-1 cursor-pointer"
                           >
@@ -351,8 +352,9 @@ export default function Admin() {
                             value=""
                             onChange={async (e) => {
                               if (e.target.value) {
+                                const apiId = o._id || o.backendId || o.id;
                                 updateOrderStatus(o.id, e.target.value);
-                                try { await updateOrderStatusApi(o.id, e.target.value); } catch (err) { console.error("Failed to update order status:", err); }
+                                try { await updateOrderStatusApi(apiId, e.target.value); } catch (err) { console.error("Failed to update order status:", err); }
                               }
                               e.target.value = "";
                             }}
@@ -372,8 +374,9 @@ export default function Admin() {
                         <IconBtn
                           onClick={async () => {
                             if (confirm("Delete this order?")) {
+                              const apiId = o._id || o.backendId || o.id;
                               deleteOrder(o.id);
-                              try { await deleteOrderApi(o.id); } catch (err) { console.error("Failed to delete order:", err); }
+                              try { await deleteOrderApi(apiId); } catch (err) { console.error("Failed to delete order:", err); }
                             }
                           }}
                           color="hover:bg-red-50 text-red-500"

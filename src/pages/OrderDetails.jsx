@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAdmin } from "../context/AdminContext";
-import { fetchOrder } from "../api/api";
-import { cancelOrderApi } from "../api/api";
+import { fetchOrders as fetchOrdersApi, cancelOrderApi } from "../api/api";
 import TrackingMap from "../components/TrackingMap";
 
 const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(String(id));
@@ -17,9 +16,8 @@ const STEPS = [
 export default function OrderDetails() {
   const navigate = useNavigate();
   const { orderId } = useParams();
-  const { orders, refreshOrders, deleteOrder } = useAdmin();
-  const [apiOrder, setApiOrder] = useState(null);
-  const [loadingApi, setLoadingApi] = useState(false);
+  const { orders, refreshOrders, mergeApiOrders, deleteOrder } = useAdmin();
+  const [loadingApi, setLoadingApi] = useState(true);
 
   const currentUser = (() => {
     try { return JSON.parse(localStorage.getItem("merkato_current_user")); } catch { return null; }
@@ -32,47 +30,27 @@ export default function OrderDetails() {
   }, [navigate, currentUser]);
 
   useEffect(() => {
-    refreshOrders();
-    const interval = setInterval(refreshOrders, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const localOrder = orderId ? orders.find((o) => o.id == orderId || o.backendId == orderId) : null;
-  const apiId = localOrder?.backendId || orderId;
-  const activeOrder = apiOrder || localOrder;
-
-  useEffect(() => {
-    if (!orderId || !isObjectId(orderId)) return;
-    setApiOrder(null);
-    const fetchFromApi = async () => {
-      setLoadingApi(true);
-      let data;
+    const syncFromBackend = async () => {
       try {
-        data = await fetchOrder(apiId);
-      } catch {
-        if (apiId !== orderId && isObjectId(orderId)) {
-          try { data = await fetchOrder(orderId); } catch {}
+        const data = await fetchOrdersApi();
+        if (data && data.length > 0) {
+          mergeApiOrders(data);
         }
-      }
-      if (data) {
-        const backendId = data._id || data.id;
-        setApiOrder({ ...data, id: backendId, backendId });
-        const saved = JSON.parse(localStorage.getItem("merkato_orders") || "[]");
-        const match = saved.find((o) => o.id == orderId || o.backendId == orderId || o.id == backendId);
-        if (match && !match.backendId) {
-          const updated = saved.map((o) =>
-            o.id === match.id ? { ...o, backendId, id: backendId, _id: backendId } : o
-          );
-          localStorage.setItem("merkato_orders", JSON.stringify(updated));
-          refreshOrders();
-        }
+      } catch (err) {
+        console.error("Failed to sync order from backend:", err);
       }
       setLoadingApi(false);
     };
-    fetchFromApi();
-    const apiInterval = setInterval(fetchFromApi, 5000);
-    return () => clearInterval(apiInterval);
-  }, [orderId]);
+    syncFromBackend();
+    const interval = setInterval(syncFromBackend, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const localOrder = orderId
+    ? orders.find((o) => String(o.id) === String(orderId) || String(o.backendId) === String(orderId) || String(o._id) === String(orderId))
+    : null;
+
+  const activeOrder = localOrder;
 
   const getStatusStep = (status) => {
     switch (status) {
@@ -88,32 +66,28 @@ export default function OrderDetails() {
   const handleCancelOrder = async () => {
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
     if (isObjectId(orderId)) {
-      try {
-        await cancelOrderApi(orderId);
-      } catch (err) {
-        console.error("Failed to cancel order on backend:", err);
-      }
+      try { await cancelOrderApi(orderId); } catch (err) { console.error("Failed to cancel:", err); }
     }
     deleteOrder(orderId);
     navigate("/tracking", { replace: true });
   };
 
+  if (loadingApi) {
+    return (
+      <div className="max-w-2xl mx-auto my-10 p-6 bg-white border rounded-lg shadow-sm text-center">
+        <div className="w-8 h-8 border-4 border-t-orange-500 border-gray-200 rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm text-gray-500">Loading order details...</p>
+      </div>
+    );
+  }
+
   if (!activeOrder) {
     return (
       <div className="max-w-2xl mx-auto my-10 p-6 bg-white border rounded-lg shadow-sm text-center">
-        {loadingApi ? (
-          <>
-            <div className="w-8 h-8 border-4 border-t-orange-500 border-gray-200 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm text-gray-500">Loading order details...</p>
-          </>
-        ) : (
-          <>
-            <p className="text-gray-500 mb-4">Order not found.</p>
-            <Link to="/tracking" className="text-orange-500 hover:underline text-sm font-medium">
-              ← Back to My Orders
-            </Link>
-          </>
-        )}
+        <p className="text-gray-500 mb-4">Order not found.</p>
+        <Link to="/tracking" className="text-orange-500 hover:underline text-sm font-medium">
+          ← Back to My Orders
+        </Link>
       </div>
     );
   }
@@ -216,7 +190,6 @@ export default function OrderDetails() {
         </p>
       </div>
 
-      {/* Live Tracking Map */}
       <div className="mb-6">
         <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
           <span>&#x1F4CD;</span> Delivery Location

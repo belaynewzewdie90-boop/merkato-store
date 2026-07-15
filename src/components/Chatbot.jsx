@@ -2,6 +2,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
+const renderMarkdown = (text) => {
+  if (!text) return "";
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, '<code style="background:#e5e7eb;padding:1px 4px;border-radius:3px;font-size:12px;">$1</code>')
+    .replace(/\n/g, "<br/>");
+};
+
 const API = import.meta.env.VITE_API_URL || '';
 
 export default function Chatbot() {
@@ -11,30 +23,22 @@ export default function Chatbot() {
   const [isLoading, setIsLoading] = useState(false);
 
   const chatBottomAnchor = useRef(null);
-  const mockupUser = "guest_user_123";
+
+  const [userId] = useState(() => {
+    const stored = sessionStorage.getItem("chat_user_id");
+    if (stored) return stored;
+    const newId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    sessionStorage.setItem("chat_user_id", newId);
+    return newId;
+  });
 
   useEffect(() => {
-    const fetchSavedLogs = async () => {
-      try {
-        const response = await axios.get(
-          `${API}/api/v1/chat/history/${mockupUser}`,
-        );
-        if (response.data.messages && response.data.messages.length > 0) {
-          setMessages(response.data.messages);
-        } else {
-          setMessages([
-            {
-              role: "assistant",
-              content:
-                "Welcome to Merkato Store! Type your query to start chatting.",
-            },
-          ]);
-        }
-      } catch (err) {
-        console.error("Failed to load historical database strings:", err);
-      }
-    };
-    fetchSavedLogs();
+    setMessages([
+      {
+        role: "assistant",
+        content: "Welcome to Merkato Store! How can I help you today?",
+      },
+    ]);
   }, []);
 
   useEffect(() => {
@@ -56,7 +60,7 @@ export default function Chatbot() {
         `${API}/api/v1/chat`,
         {
           message: currentPrompt,
-          userId: mockupUser,
+          userId,
         },
       );
 
@@ -197,9 +201,8 @@ export default function Chatbot() {
                     lineHeight: "1.4",
                     boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                   }}
-                >
-                  {msg.content}
-                </div>
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                />
               );
             })}
 
