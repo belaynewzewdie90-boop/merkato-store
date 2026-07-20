@@ -21,8 +21,6 @@ import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import Chatbot from "./components/Chatbot"; 
 
 const AuthContext = createContext({ user: null, setUser: () => {} });

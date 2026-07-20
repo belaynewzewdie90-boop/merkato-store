@@ -4,8 +4,12 @@ import { useCart } from "../context/CartContext";
 import { useAdmin } from "../context/AdminContext";
 import { createOrder, updateOrderPayment } from "../api/api";
 import { FiTrash2, FiCheckCircle, FiTruck, FiArrowLeft } from "react-icons/fi";
+import axios from "axios";
+
+const API = import.meta.env.VITE_API_URL || "";
 
 const PAYMENT_METHODS = [
+  { value: "chapa", label: "Chapa", icon: "💳" },
   { value: "cod", label: "Cash on Delivery", icon: "💵" },
   { value: "telebirr", label: "Telebirr", icon: "📱" },
   { value: "cbe", label: "CBE Bank", icon: "🏦" },
@@ -122,6 +126,32 @@ export default function Cart() {
     if (!paymentForm.amountPaid || Number(paymentForm.amountPaid) <= 0) {
       alert("Please enter the amount you paid.");
       return;
+    }
+
+    if (paymentForm.paymentMethod === "chapa") {
+      try {
+        const res = await axios.post(`${API}/api/v1/payments/initialize`, {
+          amount: Number(paymentForm.amountPaid),
+          email: currentUser?.email || "customer@example.com",
+          first_name: currentUser?.firstName || formData.fullName.split(" ")[0],
+          last_name: currentUser?.lastName || formData.fullName.split(" ").slice(1).join(" "),
+          phone_number: formData.phone,
+          customerName: formData.fullName,
+          phone: formData.phone,
+          address: formData.location,
+          items: cart.map((i) => ({ name: i.name, price: i.price, qty: i.quantity, image: i.image })),
+          totalPaid: Number(paymentForm.amountPaid),
+          orderId,
+        });
+        if (res.data.success && res.data.checkoutUrl) {
+          window.location.href = res.data.checkoutUrl;
+          return;
+        }
+      } catch (err) {
+        console.error("Chapa init error:", err);
+        alert("Failed to start Chapa payment. Please try again.");
+        return;
+      }
     }
 
     const labels = { cod: "Cash on Delivery", telebirr: "Telebirr Wallet", cbe: "CBE Bank" };
@@ -285,11 +315,19 @@ export default function Cart() {
               </div>
             )}
 
+            {paymentForm.paymentMethod === "chapa" && (
+              <div className="bg-orange-50 border border-orange-100 p-3 rounded-xl">
+                <p className="text-xs font-bold text-orange-800">
+                  You will be redirected to Chapa to complete your payment securely.
+                </p>
+              </div>
+            )}
+
             <button
               type="submit"
               className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-all"
             >
-              Submit Payment
+              {paymentForm.paymentMethod === "chapa" ? "Pay with Chapa" : "Submit Payment"}
             </button>
           </form>
         </div>

@@ -9,6 +9,7 @@ export default function PaymentSuccess() {
   const tx_ref = searchParams.get("tx_ref");
   const navigate = useNavigate();
   const [status, setStatus] = useState("verifying");
+  const [orderId, setOrderId] = useState(null);
 
   useEffect(() => {
     if (!tx_ref) {
@@ -18,8 +19,12 @@ export default function PaymentSuccess() {
     axios
       .get(`${API}/api/v1/payments/verify/${tx_ref}`)
       .then((res) => {
-        if (res.data.success) setStatus("success");
-        else setStatus("failed");
+        if (res.data.success) {
+          setOrderId(res.data.orderId);
+          setStatus("success");
+        } else {
+          setStatus("failed");
+        }
       })
       .catch(() => setStatus("failed"));
   }, [tx_ref]);
@@ -52,7 +57,7 @@ export default function PaymentSuccess() {
         </h2>
         <p className="text-gray-500 text-sm mb-1">
           {status === "success"
-            ? "Your payment has been confirmed."
+            ? "Your payment has been confirmed and your order is placed."
             : "We could not verify your payment."}
         </p>
         {tx_ref && (
@@ -61,17 +66,34 @@ export default function PaymentSuccess() {
           </p>
         )}
 
+        {status === "success" && orderId && (
+          <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left border border-gray-100 space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Order ID:</span>
+              <span className="font-mono font-bold text-gray-900">{orderId}</span>
+            </div>
+          </div>
+        )}
+
         {status === "success" ? (
           <div className="space-y-3">
+            {orderId && (
+              <button
+                onClick={() => navigate(`/order/${orderId}`)}
+                className="w-full bg-orange-500 text-white font-bold py-3 rounded hover:bg-orange-600 transition"
+              >
+                View Order Details
+              </button>
+            )}
             <button
               onClick={() => navigate("/tracking")}
-              className="w-full bg-orange-500 text-white font-bold py-3 rounded hover:bg-orange-600 transition"
+              className="w-full bg-white text-orange-500 font-bold py-3 rounded border border-orange-300 hover:bg-orange-50 transition"
             >
               Go to My Orders
             </button>
             <Link
               to="/"
-              className="block w-full bg-white text-orange-500 font-bold py-3 rounded border border-orange-300 hover:bg-orange-50 transition"
+              className="block w-full bg-white text-gray-600 font-bold py-3 rounded border border-gray-200 hover:bg-gray-50 transition text-center"
             >
               Back to Home
             </Link>
@@ -80,13 +102,13 @@ export default function PaymentSuccess() {
           <div className="space-y-3">
             <Link
               to="/checkout"
-              className="block w-full bg-orange-500 text-white font-bold py-3 rounded hover:bg-orange-600 transition"
+              className="block w-full bg-orange-500 text-white font-bold py-3 rounded hover:bg-orange-600 transition text-center"
             >
               Try Again
             </Link>
             <Link
               to="/"
-              className="block w-full bg-white text-gray-600 font-bold py-3 rounded border border-gray-200 hover:bg-gray-50 transition"
+              className="block w-full bg-white text-gray-600 font-bold py-3 rounded border border-gray-200 hover:bg-gray-50 transition text-center"
             >
               Back to Home
             </Link>

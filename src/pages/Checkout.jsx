@@ -86,14 +86,26 @@ export default function Checkout() {
 
     if (formData.paymentMethod === "chapa") {
       try {
+        const cartItems = JSON.parse(localStorage.getItem("merkato_cart") || "[]");
         const res = await axios.post(`${API}/api/v1/payments/initialize`, {
           amount: parseFloat(formData.enteredCost),
           email: currentUser?.email || "customer@example.com",
           first_name: currentUser?.firstName || formData.fullName.split(" ")[0],
           last_name: currentUser?.lastName || formData.fullName.split(" ").slice(1).join(" "),
           phone_number: formData.phone,
+          customerName: formData.fullName,
+          phone: formData.phone,
+          address: formData.address,
+          items: cartItems.map((item) => ({
+            name: item.title || item.name,
+            price: item.price,
+            qty: item.quantity || 1,
+            image: item.image || item.thumbnail || "",
+          })),
+          totalPaid: parseFloat(formData.enteredCost),
         });
         if (res.data.success && res.data.checkoutUrl) {
+          localStorage.removeItem("merkato_cart");
           window.location.href = res.data.checkoutUrl;
           return;
         }
