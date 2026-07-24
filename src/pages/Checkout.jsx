@@ -120,6 +120,7 @@ export default function Checkout() {
     setTimeout(async () => {
       const newOrder = {
         customerName: formData.fullName,
+        email: currentUser?.email || "",
         phone: formData.phone,
         address: formData.address,
         totalPaid: parseFloat(formData.enteredCost),

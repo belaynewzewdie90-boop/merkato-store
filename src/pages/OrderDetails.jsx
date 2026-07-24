@@ -112,11 +112,18 @@ export default function OrderDetails() {
             </span>
           </h2>
         </div>
-        <span
-          className={`text-xs font-bold px-2.5 py-1 rounded border ${isCanceled ? "bg-red-50 text-red-600 border-red-100" : "bg-gray-100 text-gray-800"}`}
-        >
-          {activeOrder.status || "Placed"}
-        </span>
+        <div className="flex items-center gap-2">
+          {activeOrder.emailSent && (
+            <span className="text-[10px] font-semibold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded">
+              Email Sent ({activeOrder.lastEmailStatus || activeOrder.status})
+            </span>
+          )}
+          <span
+            className={`text-xs font-bold px-2.5 py-1 rounded border ${isCanceled ? "bg-red-50 text-red-600 border-red-100" : "bg-gray-100 text-gray-800"}`}
+          >
+            {activeOrder.status || "Placed"}
+          </span>
+        </div>
       </div>
 
       {!isCanceled ? (
@@ -192,7 +199,7 @@ export default function OrderDetails() {
 
       <div className="mb-6">
         <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-          <span>&#x1F4CD;</span> Delivery Location
+          Delivery Location
         </h3>
         <div className="rounded-xl overflow-hidden border border-gray-200">
           <TrackingMap />

@@ -89,6 +89,24 @@ export function AdminProvider({ children }) {
     localStorage.setItem("merkato_orders", JSON.stringify(orders));
   }, [orders]);
 
+  useEffect(() => {
+    if (isAuthed && !localStorage.getItem("merkato_access_token")) {
+      const BASE = (import.meta.env.VITE_API_URL || "") + "/api/v1";
+      fetch(`${BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "admin@merkato.com", password: "Admin123" }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.accessToken) {
+            localStorage.setItem("merkato_access_token", data.accessToken);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthed]);
+
   // force re-sync orders from localStorage (for cross-tab / polling)
   const refreshOrders = () => {
     const saved = localStorage.getItem("merkato_orders");
@@ -100,10 +118,24 @@ export function AdminProvider({ children }) {
     }
   };
 
-  const login = (username, password) => {
+  const login = async (username, password) => {
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       setIsAuthed(true);
       localStorage.setItem("merkato_admin_authed", "true");
+      try {
+        const BASE = (import.meta.env.VITE_API_URL || "") + "/api/v1";
+        const res = await fetch(`${BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: "admin@merkato.com", password: "Admin123" }),
+        });
+        const data = await res.json();
+        if (data.accessToken) {
+          localStorage.setItem("merkato_access_token", data.accessToken);
+        }
+      } catch (err) {
+        console.error("Backend admin login failed:", err.message);
+      }
       return true;
     }
     return false;

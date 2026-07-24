@@ -13,10 +13,10 @@ export default function AdminLogin() {
     navigate("/admin", { replace: true });
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    const ok = login(form.username.trim(), form.password);
+    const ok = await login(form.username.trim(), form.password);
     if (ok) {
       navigate("/admin", { replace: true });
     } else {

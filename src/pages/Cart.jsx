@@ -85,6 +85,7 @@ export default function Cart() {
     e.preventDefault();
     const newOrder = {
       customerName: formData.fullName,
+      email: currentUser?.email || "",
       phone: formData.phone,
       address: formData.location,
       items: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.quantity, image: i.image })),

@@ -88,6 +88,11 @@ export default function Tracking() {
                 <span className="text-[10px] text-gray-400">{order.date}</span>
               </div>
               <div className="flex items-center gap-3">
+                {order.emailSent && (
+                  <span className="text-[9px] font-semibold text-green-600 bg-green-50 border border-green-100 px-1.5 py-0.5 rounded">
+                    Email Sent ({order.lastEmailStatus || order.status})
+                  </span>
+                )}
                 <span className="font-bold text-gray-900 text-xs">
                   {(order.totalPaid || 0).toLocaleString()} ETB
                 </span>

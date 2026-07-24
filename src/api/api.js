@@ -30,12 +30,36 @@ async function request(endpoint, options = {}) {
   const res = await fetch(`${BASE}${endpoint}`, { ...options, headers });
   const data = await res.json();
   if (!res.ok) {
-    const err = new Error(data.message || `Request failed (${res.status})`);
-    err.status = res.status;
+    if (res.status === 401 && localStorage.getItem("merkato_admin_authed") === "true") {
+      try {
+        const loginRes = await fetch(`${BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: "admin@merkato.com", password: "Admin123" }),
+        });
+        const loginData = await loginRes.json();
+        if (loginData.accessToken) {
+          localStorage.setItem("merkato_access_token", loginData.accessToken);
+          headers["Authorization"] = `Bearer ${loginData.accessToken}`;
+          const retryRes = await fetch(`${BASE}${endpoint}`, { ...options, headers });
+          const retryData = await retryRes.json();
+          if (!retryRes.ok) {
+            const err = new Error(retryData.message || `Request failed (${retryRes.status})`);
+            err.status = retryRes.status;
+            throw err;
+          }
+          return retryData;
+        }
+      } catch (retryErr) {
+        if (retryErr.status) throw retryErr;
+      }
+    }
     if (res.status === 404 && data.message === "User matching this token no longer exists") {
       localStorage.removeItem("merkato_access_token");
       localStorage.removeItem("merkato_current_user");
     }
+    const err = new Error(data.message || `Request failed (${res.status})`);
+    err.status = res.status;
     throw err;
   }
   return data;

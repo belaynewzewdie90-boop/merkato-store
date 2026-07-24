@@ -56,6 +56,7 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [authError, setAuthError] = useState(false);
+  const [statusMsg, setStatusMsg] = useState(null);
 
   // Force refresh: re-read orders from localStorage into React state
   const forceRefresh = () => {
@@ -239,6 +240,25 @@ export default function Admin() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={async () => {
+                try {
+                  const BASE = (import.meta.env.VITE_API_URL || "") + "/api/v1";
+                  const token = localStorage.getItem("merkato_access_token");
+                  const res = await fetch(`${BASE}/auth/test-email`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                  });
+                  const data = await res.json();
+                  alert(data.message || (data.success ? "Test email sent!" : "Failed"));
+                } catch (err) {
+                  alert("Test email failed: " + err.message);
+                }
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-xl transition-all text-sm inline-flex items-center gap-2 cursor-pointer"
+            >
+              Test Email
+            </button>
+            <button
               onClick={forceRefresh}
               className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-xl transition-all text-sm inline-flex items-center gap-2 cursor-pointer"
             >
@@ -256,6 +276,18 @@ export default function Admin() {
             )}
           </div>
         </div>
+
+        {statusMsg && (
+          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border mb-3 ${
+            statusMsg.success
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-red-50 text-red-700 border-red-200"
+          }`}>
+            <span>{statusMsg.success ? "Email sent to customer for" : "Email failed for"}</span>
+            <strong>Order #{statusMsg.orderId}</strong>
+            <span>({statusMsg.status})</span>
+          </div>
+        )}
 
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
@@ -287,6 +319,11 @@ export default function Admin() {
                       <p className="font-bold text-gray-800">{o.customerName || "N/A"}</p>
                       <p className="text-xs text-gray-400">{o.phone || ""}</p>
                       <p className="text-xs text-gray-400">{o.address || ""}</p>
+                      {o.emailSent && (
+                        <span className="text-[9px] font-semibold text-green-600 bg-green-50 border border-green-100 px-1 py-0.5 rounded mt-1 inline-block">
+                          Email Sent
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600">
                       {o.items ? o.items.map((i) => i.name + " x" + i.qty).join(", ") : "—"}
@@ -354,7 +391,14 @@ export default function Admin() {
                               if (e.target.value) {
                                 const apiId = o._id || o.backendId || o.id;
                                 updateOrderStatus(o.id, e.target.value);
-                                try { await updateOrderStatusApi(apiId, e.target.value); } catch (err) { console.error("Failed to update order status:", err); }
+                                try {
+                                  await updateOrderStatusApi(apiId, e.target.value);
+                                  setStatusMsg({ orderId: o.id, status: e.target.value, success: true });
+                                } catch (err) {
+                                  console.error("Failed to update order status:", err);
+                                  setStatusMsg({ orderId: o.id, status: e.target.value, success: false });
+                                }
+                                setTimeout(() => setStatusMsg(null), 4000);
                               }
                               e.target.value = "";
                             }}
