@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -69,24 +70,25 @@ const ProductList = () => {
                 key={product._id}
                 className="border rounded-2xl bg-white p-4 shadow-sm"
               >
+                <Link to={`/products/${product._id}`} className="block">
+                  {/* 🖼️ 2 IMAGES SLIDER SIMPLE */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {product.images?.slice(0, 2).map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        alt={product.name}
+                        className="h-24 w-full object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
 
-                {/* 🖼️ 2 IMAGES SLIDER SIMPLE */}
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {product.images?.slice(0, 2).map((img, i) => (
-                    <img
-                      key={i}
-                      src={img}
-                      alt={product.name}
-                      className="h-24 w-full object-cover rounded-lg"
-                    />
-                  ))}
-                </div>
+                  <h3 className="font-bold">{product.name}</h3>
 
-                <h3 className="font-bold">{product.name}</h3>
-
-                <p className="text-xs text-gray-500">
-                  {product.category}
-                </p>
+                  <p className="text-xs text-gray-500">
+                    {product.category}
+                  </p>
+                </Link>
 
                 <p className="font-black mt-2">
                   {Number(product.price).toLocaleString()} ETB

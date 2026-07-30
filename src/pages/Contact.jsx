@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
+const CONTACT_PHONE = "0954454027";
+const CONTACT_EMAIL = "belaynewzewdie90@gmail.com";
+
 export default function Contact() {
   const [formData, setFormData] = useState({
     name: "",
@@ -9,16 +12,41 @@ export default function Contact() {
   });
 
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
+    setLoading(true);
+    setError("");
 
-    // simulate sending message
-    setTimeout(() => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/v1/contact`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        },
+      );
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message);
+        setLoading(false);
+        return;
+      }
+
+      setSent(true);
+      setLoading(false);
       setFormData({ name: "", email: "", message: "" });
-      setSent(false);
-    }, 2500);
+
+      setTimeout(() => setSent(false), 4000);
+    } catch (err) {
+      setError("Connection error. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,7 +58,7 @@ export default function Contact() {
         </h1>
         <p className="text-gray-600 max-w-md mx-auto">
           Have questions about our products or delivery? Send us a message and
-          we’ll respond quickly.
+          we'll respond quickly.
         </p>
       </div>
 
@@ -43,16 +71,16 @@ export default function Contact() {
 
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              📍 Address: Merkato Area, Addis Ababa, Ethiopia
+              Address: Merkato Area, Addis Ababa, Ethiopia
             </p>
             <p>
-              📞 Phone: +251 911 000 000
+              Phone: {CONTACT_PHONE}
             </p>
             <p>
-              📧 Email: support@merkato-store.com
+              Email: {CONTACT_EMAIL}
             </p>
             <p>
-              ⏰ Working Hours: Mon - Sat (8:00 AM - 6:00 PM)
+              Working Hours: Mon - Sat (8:00 AM - 6:00 PM)
             </p>
           </div>
 
@@ -75,14 +103,20 @@ export default function Contact() {
           {sent ? (
             <div className="text-center py-10">
               <p className="text-green-600 font-bold text-lg">
-                ✅ Message Sent Successfully!
+                Message Sent Successfully!
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                We’ll get back to you soon.
+                We'll get back to you soon.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 font-semibold">
+                  {error}
+                </p>
+              )}
+
               <div>
                 <input
                   type="text"
@@ -124,9 +158,14 @@ export default function Contact() {
 
               <button
                 type="submit"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-lg transition"
+                disabled={loading}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
               >
-                Send Message
+                {loading ? (
+                  <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  "Send Message"
+                )}
               </button>
             </form>
           )}

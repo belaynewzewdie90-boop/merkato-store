@@ -213,3 +213,132 @@ export async function resetPassword(token, password) {
   });
   return res;
 }
+
+export async function getProfile() {
+  const res = await request("/profile/me");
+  return res.data;
+}
+
+export async function updatePersonalInfo(payload) {
+  const token = getToken();
+  const isFormData = payload instanceof FormData;
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/profile/personal-info`, {
+    method: "PUT",
+    headers: isFormData ? headers : { ...headers, "Content-Type": "application/json" },
+    body: isFormData ? payload : JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Request failed");
+  return data;
+}
+
+export async function changeEmail(newEmail, password) {
+  const res = await request("/profile/change-email", {
+    method: "PUT",
+    body: JSON.stringify({ newEmail, password }),
+  });
+  return res;
+}
+
+export async function changeUsername(username) {
+  const res = await request("/profile/change-username", {
+    method: "PUT",
+    body: JSON.stringify({ username }),
+  });
+  return res;
+}
+
+export async function changePassword(currentPassword, newPassword) {
+  const res = await request("/profile/change-password", {
+    method: "PUT",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  return res;
+}
+
+export async function deactivateAccount(password) {
+  const res = await request("/profile/deactivate", {
+    method: "PUT",
+    body: JSON.stringify({ password }),
+  });
+  return res;
+}
+
+export async function deleteAccount(password) {
+  const res = await request("/profile/delete-account", {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
+  return res;
+}
+
+export async function addAddress(address) {
+  const res = await request("/profile/addresses", {
+    method: "POST",
+    body: JSON.stringify(address),
+  });
+  return res;
+}
+
+export async function updateAddress(addressId, address) {
+  const res = await request(`/profile/addresses/${addressId}`, {
+    method: "PUT",
+    body: JSON.stringify(address),
+  });
+  return res;
+}
+
+export async function deleteAddress(addressId) {
+  const res = await request(`/profile/addresses/${addressId}`, {
+    method: "DELETE",
+  });
+  return res;
+}
+
+export async function updatePreferences(prefs) {
+  const res = await request("/profile/preferences", {
+    method: "PUT",
+    body: JSON.stringify(prefs),
+  });
+  return res;
+}
+
+export async function updatePrivacy(privacy) {
+  const res = await request("/profile/privacy", {
+    method: "PUT",
+    body: JSON.stringify(privacy),
+  });
+  return res;
+}
+
+export async function getLoginHistory() {
+  const res = await request("/profile/login-history");
+  return res.data;
+}
+
+export async function getUserOrders() {
+  const res = await request("/profile/orders");
+  return res.data;
+}
+
+export async function downloadMyData() {
+  const token = getToken();
+  const res = await fetch(`${BASE}/profile/download-data`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Download failed");
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `merkato-data-${Date.now()}.json`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function logoutAllDevices() {
+  const res = await request("/profile/logout-all", { method: "POST" });
+  return res;
+}

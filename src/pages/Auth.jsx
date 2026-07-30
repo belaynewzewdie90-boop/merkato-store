@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import { FcGoogle } from "react-icons/fc";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../App";
 import { socket } from "../services/socket"; // 🔌 Import your live socket instance
 
@@ -16,10 +17,11 @@ export default function Auth() {
     return params.get("redirect") || "/products";
   };
   const [isLogin, setIsLogin] = useState(true);
-  const [isAdminMode, setIsAdminMode] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -30,14 +32,6 @@ export default function Auth() {
     acceptTerms: false,
   });
 
-  const toggleAdminMode = () => {
-    const next = !isAdminMode;
-    setIsAdminMode(next);
-    setError("");
-    if (next) {
-      setFormData((prev) => ({ ...prev, email: "admin@merkato.com" }));
-    }
-  };
 
   useEffect(() => {
     const sessionActive = localStorage.getItem("merkato_current_user");
@@ -113,10 +107,6 @@ export default function Auth() {
     setLoading(true);
     setError("");
     setSuccess("");
-
-    if (isAdminMode) {
-      setError("");
-    }
 
     try {
       const res = await fetch(
@@ -246,15 +236,25 @@ export default function Auth() {
             <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-gray-700">
               Password
             </label>
-            <input
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                required
+                value={formData.password}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 pr-11 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                tabIndex={-1}
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
           </div>
 
           {isLogin && (
@@ -268,43 +268,30 @@ export default function Auth() {
             </div>
           )}
 
-          {isLogin && (
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Admin Access
-              </span>
-              <button
-                type="button"
-                onClick={toggleAdminMode}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
-                  isAdminMode ? "bg-orange-500" : "bg-gray-200"
-                }`}
-                role="switch"
-                aria-checked={isAdminMode}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
-                    isAdminMode ? "translate-x-5" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-          )}
-
           {!isLogin && (
             <div>
               <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-gray-700">
                 Confirm Password
               </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                required
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 pr-11 text-sm text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-gray-50/50"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
             </div>
           )}
 
@@ -337,19 +324,17 @@ export default function Auth() {
             disabled={loading}
             className="w-full py-3.5 mt-2 text-sm font-bold text-white bg-orange-500 rounded-2xl hover:bg-orange-600 transition-all shadow-md shadow-orange-500/10 active:scale-[0.99] disabled:opacity-50 cursor-pointer flex justify-center items-center"
           >
-            {loading ? (
-              <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : isAdminMode ? (
-              "Sign In as Administrator"
-            ) : isLogin ? (
-              "Login In Account"
-            ) : (
-              "Complete Register"
-            )}
+              {loading ? (
+                <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : isLogin ? (
+                "Login In Account"
+              ) : (
+                "Complete Register"
+              )}
           </button>
         </form>
 
-        {!isAdminMode && googleClientId && (
+        {googleClientId && (
           <>
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
@@ -379,9 +364,10 @@ export default function Auth() {
           <button
             onClick={() => {
               setIsLogin(!isLogin);
-              setIsAdminMode(false);
               setError("");
               setSuccess("");
+              setShowPassword(false);
+              setShowConfirmPassword(false);
               setFormData({
                 firstName: "",
                 lastName: "",

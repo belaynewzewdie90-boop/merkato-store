@@ -23,6 +23,7 @@ const EMPTY_FORM = {
   category: "",
   image: null,
   description: "",
+  productDetail: "",
   stock: 0,
   imageFile: null,
 };
@@ -149,6 +150,7 @@ export default function Admin() {
       category: product.category,
       image: product.image,
       description: product.description,
+      productDetail: product.productDetail || "",
       stock: product.stock,
       imageFile: null,
     });
@@ -171,6 +173,7 @@ export default function Admin() {
       payload.append("price", String(Number(formData.price) || 0));
       payload.append("category", formData.category);
       payload.append("description", formData.description);
+      payload.append("productDetail", formData.productDetail);
       payload.append("stock", String(Number(formData.stock) || 0));
       payload.append("image", formData.imageFile);
     } else {
@@ -180,6 +183,7 @@ export default function Admin() {
         category: formData.category,
         image: formData.image,
         description: formData.description,
+        productDetail: formData.productDetail,
         stock: Number(formData.stock) || 0,
       };
     }
@@ -708,6 +712,20 @@ export default function Admin() {
                   rows={3}
                   className="mt-1 w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder="Short product description..."
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Product Detail
+                </label>
+                <textarea
+                  value={formData.productDetail}
+                  onChange={(e) =>
+                    setFormData({ ...formData, productDetail: e.target.value })
+                  }
+                  rows={5}
+                  className="mt-1 w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Detailed product information, features, materials, care instructions..."
                 />
               </div>
 

@@ -84,6 +84,16 @@ export default function Header() {
 
           {user && (
             <Link
+              to="/settings"
+              className="text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs md:text-sm font-semibold"
+            >
+              <FiSettings className="text-base md:text-lg" />
+              <span className="hidden sm:inline">Settings</span>
+            </Link>
+          )}
+
+          {user && (
+            <Link
               to="/tracking"
               className="text-gray-300 hover:text-orange-500 transition-colors flex items-center gap-1 text-xs md:text-sm font-semibold"
             >

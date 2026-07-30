@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { FiSearch, FiX } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
 import { fetchProducts as fetchProductsApi } from "../api/api";
@@ -235,7 +235,7 @@ export default function Products() {
                 key={product._id || product.id}
                 className="group border border-gray-100 rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between"
               >
-                <div>
+                <Link to={`/products/${product._id || product.id}`} className="block">
                   <div className="relative overflow-hidden rounded-xl bg-gray-50 aspect-square mb-4">
                     <img
                       src={product.image}
@@ -259,7 +259,7 @@ export default function Products() {
                   <p className="text-gray-400 text-xs mt-1 mb-3 line-clamp-2 leading-relaxed">
                     {product.description}
                   </p>
-                </div>
+                </Link>
 
                 <div className="mt-2">
                   <div className="flex justify-between items-center mb-3 pt-2 border-t border-dashed border-gray-100">

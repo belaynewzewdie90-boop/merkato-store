@@ -7,6 +7,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Products from "./pages/Products";
+import ProductDetails from "./pages/ProductDetails";
 import Services from "./pages/Services";
 import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
@@ -16,7 +17,6 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Settings from "./pages/Settings";
 import Tracking from "./pages/Tracking";
 import OrderDetails from "./pages/OrderDetails";
-import Address from "./pages/Address";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -73,6 +73,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/products/:id" element={<ProductDetails />} />
             <Route path="/services" element={<Services />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/contact" element={<Contact />} />
@@ -83,7 +84,7 @@ function App() {
             <Route path="/tracking" element={<Tracking />} />
             <Route path="/tracking/:orderId" element={<OrderDetails />} />
             <Route path="/order/:orderId" element={<OrderDetails />} />
-            <Route path="/address" element={<Address />} />
+            <Route path="/address" element={<Navigate to="/settings?tab=addresses" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

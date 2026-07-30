@@ -88,7 +88,7 @@ export default function Cart() {
       email: currentUser?.email || "",
       phone: formData.phone,
       address: formData.location,
-      items: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.quantity, image: i.image })),
+      items: cart.map((i) => ({ id: i._id || i.id, name: i.name, price: i.price, qty: i.quantity, image: i.image })),
       totalPaid: totalCost,
       paymentMethod: null,
       paymentDetails: null,
@@ -386,7 +386,7 @@ export default function Cart() {
         <div className="lg:col-span-3 space-y-4">
           {cart.map((item) => (
             <div
-              key={item.id}
+              key={item._id || item.id}
               className="flex items-center justify-between border p-4 rounded-xl bg-white"
             >
               <div className="flex items-center gap-3">
@@ -405,21 +405,21 @@ export default function Cart() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center border rounded bg-gray-50">
                   <button
-                    onClick={() => updateQuantity(item.id, -1)}
+                    onClick={() => updateQuantity(item._id || item.id, -1)}
                     className="p-1 px-2 text-gray-600 hover:bg-gray-200"
                   >
                     -
                   </button>
                   <span className="px-2 font-bold text-sm">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.id, 1)}
+                    onClick={() => updateQuantity(item._id || item.id, 1)}
                     className="p-1 px-2 text-gray-600 hover:bg-gray-200"
                   >
                     +
                   </button>
                 </div>
                 <button
-                  onClick={() => removeFromCart(item.id)}
+                  onClick={() => removeFromCart(item._id || item.id)}
                   className="text-gray-400 hover:text-red-500"
                 >
                   <FiTrash2 size={16} />
