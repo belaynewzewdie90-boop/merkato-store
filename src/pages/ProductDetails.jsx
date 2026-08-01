@@ -51,6 +51,14 @@ export default function ProductDetails() {
     load();
     setQty(1);
     setAdded(false);
+
+    const onStorageChange = (e) => {
+      if (e.key === "merkato_products") {
+        load();
+      }
+    };
+    window.addEventListener("storage", onStorageChange);
+    return () => window.removeEventListener("storage", onStorageChange);
   }, [id]);
 
   const handleAddToCart = () => {

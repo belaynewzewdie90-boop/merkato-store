@@ -126,10 +126,26 @@ export default function Products() {
     socket.on("new_product", onNewProduct);
     socket.on("update_product", onUpdateProduct);
     socket.on("delete_product", onDeleteProduct);
+
+    const onStorageChange = (e) => {
+      if (e.key === "merkato_products") {
+        try {
+          const parsed = e.newValue ? JSON.parse(e.newValue) : null;
+          if (Array.isArray(parsed)) {
+            setProducts(parsed);
+          }
+        } catch (err) {
+          console.warn("[Products] storage sync error:", err);
+        }
+      }
+    };
+    window.addEventListener("storage", onStorageChange);
+
     return () => {
       socket.off("new_product", onNewProduct);
       socket.off("update_product", onUpdateProduct);
       socket.off("delete_product", onDeleteProduct);
+      window.removeEventListener("storage", onStorageChange);
     };
   }, []);
 
